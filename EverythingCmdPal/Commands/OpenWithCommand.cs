@@ -2,6 +2,8 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.CommandPalette.Extensions;
 using System.Runtime.InteropServices;
+using System;
+using System.Threading.Tasks;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Shell;
@@ -47,7 +49,7 @@ namespace EverythingCmdPal.Commands
             }
         }
 
-        //private async void OpenWith(string filename)
+        //private async Task<bool> OpenWith(string filename)
         //{
         //    try
         //    {
@@ -61,7 +63,7 @@ namespace EverythingCmdPal.Commands
         //            };
 
         //            // Launch the file with the "Open With" dialog
-        //            Windows.System.Launcher.LaunchFileAsync(file, options);
+        //            return await Windows.System.Launcher.LaunchFileAsync(file, options);
         //        }
         //        else
         //            ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.file_not_found}\n{_fullPath}", State = MessageState.Error }, StatusContext.Page);
@@ -70,6 +72,7 @@ namespace EverythingCmdPal.Commands
         //    {
         //        ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.unknown_error}\n{_fullPath}\n{e.Message}", State = MessageState.Error }, StatusContext.Page);
         //    }
+        //    return false;
         //}
 
         internal OpenWithCommand(string fullPath)
@@ -81,7 +84,7 @@ namespace EverythingCmdPal.Commands
 
         public override CommandResult Invoke()
         {
-            if (OpenWith(_fullPath))
+            if (OpenWith(_fullPath)/*.Result*/)
                 return CommandResult.Dismiss();
             else
             {
