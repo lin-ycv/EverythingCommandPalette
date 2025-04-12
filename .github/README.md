@@ -8,7 +8,7 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/downloads/lin-ycv/EverythingCommandPalette/latest/total?style=flat-square)](https://github.com/lin-ycv/EverythingCommandPalette/releases/latest)<br>
 [![Chocolatey version](https://img.shields.io/chocolatey/v/EverythingCommandPalette?style=flat-square)](https://community.chocolatey.org/packages/EverythingCommandPalette)
 [![Scoop version](https://img.shields.io/scoop/v/Everything-CommandPalette?bucket=extras&color=orange&style=flat-square)](https://scoop.sh/#/apps?q=Everything-CommandPalette)
-[![Winget](https://img.shields.io/badge/dynamic/xml?label=winget&prefix=v&query=%2F%2Ftr%5B%40id%3D%27winget%27%5D%2Ftd%5B3%5D%2Fspan%2Fa&url=https%3A%2F%2Frepology.org%2Fproject%2Feverythingcommandpalette%2Fversions&color=orange&style=flat-square)](https://github.com/microsoft/winget-pkgs/tree/master/manifests/l/lin-ycv/EverythingCommandPalette)
+[![Winget](https://img.shields.io/badge/dynamic/xml?label=winget&prefix=v&query=%2F%2Ftr%5B%40id%3D%27winget%27%5D%2Ftd%5B3%5D%2Fspan%2Fa&url=https%3A%2F%2Frepology.org%2Fproject%2Feverythingcmdpal%2Fversions&color=orange&style=flat-square)](https://github.com/microsoft/winget-pkgs/tree/master/manifests/l/lin-ycv/EverythingCmdPal)
 
 </div>
 

@@ -14,12 +14,18 @@ using Windows.Storage.Streams;
 using EverythingCmdPal.Helpers;
 using System.IO;
 using EverythingCmdPal.Commands;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EverythingCmdPal;
 
-internal sealed partial class Results : DynamicListPage
+internal sealed partial class Results : DynamicListPage, IDisposable
 {
     internal readonly SettingsManager _settings;
+    private readonly List<IListItem> _results = [];
+    private readonly Lock _lock = new();
+    private CancellationTokenSource _cts = new();
+
     public Results(SettingsManager settings)
     {
         Icon = IconHelpers.FromRelativePath("Assets\\EverythingPT.svg");
@@ -28,25 +34,34 @@ internal sealed partial class Results : DynamicListPage
         _settings = settings;
         ShowDetails = true;
     }
-
+    public override IListItem[] GetItems() => [.. _results];
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
-        // Need to call this to invoke GetItem
-        // passing in a number doesn't seem to do anything, omitted
-        RaiseItemsChanged();
+        if (oldSearch != newSearch && newSearch != string.Empty)
+        {
+            IsLoading = true;
+            CancellationTokenSource cts;
+            lock (_lock)
+            {
+                _cts.Cancel();
+                _cts = new();
+                cts = _cts;
+            }
+            try
+            {
+                _results.Clear();
+                int count = Query(newSearch, cts.Token);
+                IsLoading = false;
+                RaiseItemsChanged(count);
+            }
+            catch { }
+        }
     }
 
-    public override IListItem[] GetItems()
+    private int Query(string orgQuery, CancellationToken token)
     {
-        //ExtensionHost.LogMessage("Query:\n" + SearchText + "\nLength: " + SearchText.Length);
-        // Don't waste resource searching if there's no query
-        // On first launch GetItems is called (no query)
-        if (SearchText.Length == 0)
-            return [];
-
-        IsLoading = true;
-
-        string query = SearchText;
+        token.ThrowIfCancellationRequested();
+        string query = orgQuery;
         if (_settings.Prefix.Length > 0)
             query = _settings.Prefix + SearchText;
 
@@ -56,8 +71,9 @@ internal sealed partial class Results : DynamicListPage
                     query = query.Replace(kv.Key, string.Empty, StringComparison.OrdinalIgnoreCase).Trim() + $" {kv.Value}";
 
         Everything_SetSearchW(query);
-        if (!Everything_QueryW(true))
+        if (!Everything_QueryW(true) || token.IsCancellationRequested)
         {
+            token.ThrowIfCancellationRequested();
             // Throwing an exception would make sense, however,
             // WinRT & COM totally eat any exception info.
             // var e = new Win32Exception("Unable to Query");
@@ -96,9 +112,12 @@ internal sealed partial class Results : DynamicListPage
                     Subtitle = $"0x{lastError:X8}",
                 });
             }
+            token.ThrowIfCancellationRequested();
             IsLoading = false;
-            return [.. items];
+            _results.AddRange(items);
+            return items.Count;
         }
+        token.ThrowIfCancellationRequested();
 
         var resultCount = Everything_GetNumResults();
 
@@ -108,6 +127,7 @@ internal sealed partial class Results : DynamicListPage
         // Loop through the results and add them to the List
         for (uint i = 0; i < resultCount; i++)
         {
+            token.ThrowIfCancellationRequested();
             // Get the result file name
             var fileName = Marshal.PtrToStringUni(Everything_GetResultFileNameW(i));
 
@@ -198,7 +218,7 @@ internal sealed partial class Results : DynamicListPage
             });
         }
 
-        if (_settings.ShowMore)
+        if (resultCount != 0 && _settings.ShowMore)
         {
             itemList.Add(new ListItem(new ShowMoreCommand(query, _settings.Exe))
             {
@@ -207,7 +227,15 @@ internal sealed partial class Results : DynamicListPage
                 Icon = IconHelpers.FromRelativePath("Assets\\EverythingPT.svg"), //new IconInfo("\uF78B"),
             });
         }
+        token.ThrowIfCancellationRequested();
         IsLoading = false;
-        return [.. itemList];
+        _results.AddRange(itemList);
+        return (int)resultCount;
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        GC.SuppressFinalize(this);
     }
 }

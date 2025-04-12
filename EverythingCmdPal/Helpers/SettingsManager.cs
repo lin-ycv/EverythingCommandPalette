@@ -84,6 +84,12 @@ namespace EverythingCmdPal.Helpers
             Resources.sendto_description,
             "notepad.exe,$P$");
 
+        private readonly TextSetting _filterPath = new(
+            Namespaced(nameof(FilterPath)),
+            Resources.filter_path,
+            Resources.filter_path_description,
+            ApplicationData.Current.LocalFolder.Path);
+
         public int SortOption => int.Parse(_sortOption.Value ?? "14", CultureInfo.InvariantCulture);
         public uint Max => uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
         public string Prefix => _prefix.Value ?? string.Empty;
@@ -94,6 +100,7 @@ namespace EverythingCmdPal.Helpers
         public string Exe => _exe.Value ?? string.Empty;
         public bool EnableSend => _bSendto.Value;
         public string Sendto => _sendto.Value ?? string.Empty;
+        public string FilterPath => _filterPath.Value ?? ApplicationData.Current.LocalFolder.Path;
         internal bool is1_4;
 
         internal static string SettingsJsonPath()
@@ -118,6 +125,8 @@ namespace EverythingCmdPal.Helpers
             Settings.Add(_exe);
             Settings.Add(_bSendto);
             Settings.Add(_sendto);
+            if (is1_4)
+                Settings.Add(_filterPath);
 
             // Load settings from file upon initialization
             LoadSettings();
@@ -149,8 +158,13 @@ namespace EverythingCmdPal.Helpers
 
         internal void CheckFilters()
         {
+            if (!is1_4)
+            {
+                _filters.Clear();
+                return;
+            }
             string filename = "filters.toml";
-            string fullpath = Path.Combine(ApplicationData.Current.LocalFolder.Path, filename);
+            string fullpath = Path.Combine(FilterPath, filename);
             if (!File.Exists(fullpath))
                 fullpath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory.ToString(), $"Assets\\{filename}");
 

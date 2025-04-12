@@ -198,6 +198,25 @@ namespace EverythingCmdPal.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to filters.toml.
+        /// </summary>
+        internal static string filter_path {
+            get {
+                return ResourceManager.GetString("filter_path", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Folder containing the customized filters.toml.
+        ///If filters.toml does not exist in this folder, the default template will be applied..
+        /// </summary>
+        internal static string filter_path_description {
+            get {
+                return ResourceManager.GetString("filter_path_description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Match path.
         /// </summary>
         internal static string match_path {
@@ -389,7 +408,7 @@ namespace EverythingCmdPal.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Send to spcified.
+        ///   Looks up a localized string similar to Send to specified.
         /// </summary>
         internal static string sendto {
             get {
