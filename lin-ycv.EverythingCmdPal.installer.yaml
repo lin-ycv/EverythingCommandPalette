@@ -1,0 +1,24 @@
+# Created using wingetcreate 1.9.4.0
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+
+PackageIdentifier: lin-ycv.EverythingCmdPal
+PackageVersion: _VERSION_
+Platform:
+- Windows.Universal
+- Windows.Desktop
+MinimumOSVersion: 10.0.19041.0
+InstallerType: msix
+PackageFamilyName: VictorLin.EverythingCP_yazqh14evg2ve
+Dependencies:
+  PackageDependencies:
+  - PackageIdentifier: Microsoft.PowerToys
+  - PackageIdentifier: Microsoft.WindowsAppRuntime.1.6
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/lin-ycv/EverythingCommandPalette/releases/download/_VERSION_/VictorLin.EverythingCP__VERSION__x64__yazqh14evg2ve.Msix
+  InstallerSha256: _HASH64_
+- Architecture: arm64
+  InstallerUrl: https://github.com/lin-ycv/EverythingCommandPalette/releases/download/_VERSION_/VictorLin.EverythingCP__VERSION__arm64__yazqh14evg2ve.Msix
+  InstallerSha256: _HASHarm64_
+ManifestType: installer
+ManifestVersion: 1.9.0
