@@ -75,7 +75,11 @@ namespace EverythingCmdPal.Interop
             public uint dwHighDateTime;
         }
 
+#if ARM64
+        internal const string dllName = "EverythingARM64.dll";
+#else
         internal const string dllName = "Everything64.dll";
+#endif
 
         [DllImport(dllName)]
         internal static extern uint Everything_GetNumResults();
