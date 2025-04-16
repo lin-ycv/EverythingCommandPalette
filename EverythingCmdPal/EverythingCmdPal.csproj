@@ -17,6 +17,9 @@
 	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	  <GenerateAppxPackageOnBuild Condition="'$(Configuration)'=='Release'">true</GenerateAppxPackageOnBuild>
   </PropertyGroup>
+	<PropertyGroup Condition="'$(Platform)' == 'ARM64'">
+		<DefineConstants>ARM64</DefineConstants>
+	</PropertyGroup>
   <ItemGroup>
     <Content Remove="Assets\logo.ai" />
   </ItemGroup>
@@ -76,7 +79,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="Everything64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory Condition="'$(Platform)' == 'x64'">Always</CopyToOutputDirectory>
+    </None>
+    <None Update="EverythingARM64.dll">
+		<CopyToOutputDirectory Condition="'$(Platform)' == 'ARM64'">PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
