@@ -81,8 +81,8 @@ namespace EverythingCmdPal.Helpers
             Resources.sendto_description,
             "notepad.exe,$P$");
 
-        public int SortOption => int.TryParse(_sortOption.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result) ? result : 14;
-        public uint Max => uint.TryParse(_max.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint result) ? result : 10;
+        public int SortOption => int.Parse(_sortOption.Value ?? "14", CultureInfo.InvariantCulture);
+        public uint Max => uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
         public string Prefix => _prefix.Value ?? string.Empty;
         public bool Match => _match.Value;
         public bool Regex => _regex.Value;
@@ -176,73 +176,55 @@ namespace EverythingCmdPal.Helpers
         }
         private static string FindEverythingExecutablePath()
         {
+            string a64 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Everything 1.5a","Everything64.exe"),  
+                   s64 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Everything","Everything.exe"),  
+                   a32 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Everything 1.5","Everything.exe"),  
+                   s32 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Everything","Everything.exe");  
+
+            if (Path.Exists(a64)) return a64;
+            if (Path.Exists(s64)) return s64;
+            if (Path.Exists(a32)) return a32;
+            if (Path.Exists(s32)) return s32;
+
             try
             {
-                // First try to find Everything through file association in registry
-                using (RegistryKey? key = Registry.ClassesRoot.OpenSubKey(@"Everything.FileList\shell\open\command"))
-                {
-                    string? command = key?.GetValue("") as string;
-                    if (!string.IsNullOrEmpty(command))
-                    {
-                        string exe = command.StartsWith('\"') && command.IndexOf('"', 1) > 1
-                            ? command[1..command.IndexOf('"', 1)]
-                            : command.Split(' ')[0];
-                        if (Path.Exists(exe) && exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                            return exe;
-                    }
-                }
-
-                // Create a list of common installation directories as previous defined
-                List<string> everythingPaths =
-                [
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Everything"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Everything 1.5a"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Everything"),
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Everything 1.5a")
-                ];
-
                 // Check uninstall information in registry for installation locations
                 string[] uninstallKeys =
                 [
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Everything",
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Everything-1.5a",
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Everything 1.5a",
                     @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Everything",
-                    @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Everything-1.5a"
+                    @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Everything 1.5a"
                 ];
 
                 foreach (string subKey in uninstallKeys)
                 {
-                    // Select appropriate registry view based on OS architecture
-                    RegistryView baseView = Environment.Is64BitOperatingSystem
-                        ? RegistryView.Registry64
-                        : RegistryView.Registry32;
-                    using RegistryKey? localMachine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, baseView);
-                    using RegistryKey? key = localMachine?.OpenSubKey(subKey);
+                    using RegistryKey? key = Registry.LocalMachine.OpenSubKey(subKey);
                     if (key != null)
                     {
                         // Check install location from registry
                         if (key.GetValue("InstallLocation") is string installLocation && Path.Exists(installLocation))
-                            everythingPaths.Add(installLocation);
+                        {
+                            string exe = Path.Combine(installLocation, "Everything.exe");
+                            string exe64 = Path.Combine(installLocation, "Everything64.exe");
+
+                            if (File.Exists(exe64)) return exe64;
+                            if (File.Exists(exe)) return exe;
+                        }
                         // Try to extract location from uninstall string
                         if (key.GetValue("UninstallString") is string uninstallString)
                         {
                             string? dir = Path.GetDirectoryName(uninstallString.Trim().Trim('"').Split(' ')[0]);
-                            if (dir is not null)
-                                everythingPaths.Add(dir);
+                            if (dir != null)
+                            {
+                                string exe = Path.Combine(dir, "Everything.exe");
+                                string exe64 = Path.Combine(dir, "Everything64.exe");
+
+                                if (File.Exists(exe64)) return exe64;
+                                if (File.Exists(exe)) return exe;
+                            }
                         }
                     }
-                }
-
-                // Check all collected paths for executable files
-                foreach (string path in everythingPaths.Distinct())
-                {
-                    // Check for both 32-bit and 64-bit versions
-                    string exe = Path.Combine(path, "Everything.exe");
-                    string exe64 = Path.Combine(path, "Everything64.exe");
-                    if (Path.Exists(exe))
-                        return exe;
-                    if (Path.Exists(exe64))
-                        return exe64;
                 }
                 // No executable found
                 return string.Empty;
