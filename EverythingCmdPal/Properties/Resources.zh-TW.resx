@@ -178,10 +178,10 @@
     <value>在此輸入內容以使用 Everything 搜尋</value>
   </data>
   <data name="open_console" xml:space="preserve">
-    <value>在主控台中開啟</value>
+    <value>在命令提示字元中開啟</value>
   </data>
   <data name="open_console_exception" xml:space="preserve">
-    <value>無法開啟主控台</value>
+    <value>無法開啟命令提示字元</value>
   </data>
   <data name="open_exception" xml:space="preserve">
     <value>無法開啟以下項目：</value>
