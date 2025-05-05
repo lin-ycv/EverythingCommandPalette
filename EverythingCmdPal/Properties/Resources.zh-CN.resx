@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="browse" xml:space="preserve">
+    <value>浏览</value>
+  </data>
+  <data name="clipboard_failed" xml:space="preserve">
+    <value>无法粘贴到剪切板，可能已被其他程序占用</value>
+  </data>
+  <data name="context_failed" xml:space="preserve">
+    <value>无法打开以下项目的上下文菜单：</value>
+  </data>
+  <data name="context_menu" xml:space="preserve">
+    <value>打开上下文菜单</value>
+  </data>
+  <data name="copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="copy_ok" xml:space="preserve">
+    <value>文件/文件夹已复制到剪贴板</value>
+  </data>
+  <data name="copy_path" xml:space="preserve">
+    <value>复制路径</value>
+  </data>
+  <data name="copy_path_ok" xml:space="preserve">
+    <value>路径已复制到剪贴板</value>
+  </data>
+  <data name="delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="delete_confirm" xml:space="preserve">
+    <value>确定要删除以下内容吗：</value>
+  </data>
+  <data name="delete_warn" xml:space="preserve">
+    <value>删除后不会放入回收站，此操作是不可撤销的！</value>
+  </data>
+  <data name="everything_not_running" xml:space="preserve">
+    <value>Everything 未运行</value>
+  </data>
+  <data name="exe" xml:space="preserve">
+    <value>Everything 可执行程序</value>
+  </data>
+  <data name="exe_description" xml:space="preserve">
+    <value>Everything 程序文件的位置，用于“显示更多”选项</value>
+  </data>
+  <data name="file_not_found" xml:space="preserve">
+    <value>找不到文件</value>
+  </data>
+  <data name="match_path" xml:space="preserve">
+    <value>匹配路径</value>
+  </data>
+  <data name="match_path_description" xml:space="preserve">
+    <value>搜索时同时匹配文件/文件夹名称和路径</value>
+  </data>
+  <data name="max" xml:space="preserve">
+    <value>最大结果数</value>
+  </data>
+  <data name="max_description" xml:space="preserve">
+    <value>显示搜索结果的最大数量</value>
+  </data>
+  <data name="noquery" xml:space="preserve">
+    <value>在此输入内容以使用 Everything 搜索</value>
+  </data>
+  <data name="open_console" xml:space="preserve">
+    <value>在控制台中打开</value>
+  </data>
+  <data name="open_console_exception" xml:space="preserve">
+    <value>无法打开控制台</value>
+  </data>
+  <data name="open_exception" xml:space="preserve">
+    <value>无法打开以下项目：</value>
+  </data>
+  <data name="open_file" xml:space="preserve">
+    <value>打开文件</value>
+  </data>
+  <data name="open_properties" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="open_with" xml:space="preserve">
+    <value>打开方式</value>
+  </data>
+  <data name="prefix" xml:space="preserve">
+    <value>查询前缀</value>
+  </data>
+  <data name="prefix_description" xml:space="preserve">
+    <value>为所有查询添加统一前缀，无需每次手动输入 前缀与查询之间不会自动添加空格</value>
+  </data>
+  <data name="regex" xml:space="preserve">
+    <value>正则表达式</value>
+  </data>
+  <data name="regex_description" xml:space="preserve">
+    <value>在搜索中启用正则表达式 推荐直接在查询中使用 regex: 前缀，而非启用此选项</value>
+  </data>
+  <data name="run_admin" xml:space="preserve">
+    <value>以管理员身份运行</value>
+  </data>
+  <data name="run_admin_exception" xml:space="preserve">
+    <value>无法以管理员身份运行</value>
+  </data>
+  <data name="sendto_description" xml:space="preserve">
+    <value>将选择的文件内容通过指定程序打开 程序路径与参数之间用英文逗号 (,) 分隔，其中 $P$ 表示所选结果的路径</value>
+  </data>
+  <data name="sendto" xml:space="preserve">
+    <value>使用指定程序打开</value>
+  </data>
+  <data name="show_more" xml:space="preserve">
+    <value>显示更多结果</value>
+  </data>
+  <data name="show_more_description" xml:space="preserve">
+    <value>通过 Everything 显示当前搜索的更多结果</value>
+  </data>
+  <data name="show_more_subtitle" xml:space="preserve">
+    <value>通过 Everything 查看搜索结果</value>
+  </data>
+  <data name="sort" xml:space="preserve">
+    <value>排序方式</value>
+  </data>
+  <data name="sort_description" xml:space="preserve">
+    <value>设置搜索结果的排序方式</value>
+  </data>
+  <data name="top_level_subtitle" xml:space="preserve">
+    <value>使用 Everything 快速查找文件和文件夹</value>
+  </data>
+  <data name="unknown_error" xml:space="preserve">
+    <value>出现未知错误</value>
+  </data>
+  <data name="sendto_enable" xml:space="preserve">
+    <value>启用“使用指定程序打开”选项</value>
+  </data>
+  <data name="sendto_enable_description" xml:space="preserve">
+    <value>设置是否启用“使用指定程序打开”选项</value>
+  </data>
+  <data name="sendto_failed" xml:space="preserve">
+    <value>无法使用指定程序打开：</value>
+  </data>
+  <data name="run_as" xml:space="preserve">
+    <value>以其他用户身份运行</value>
+  </data>
+  <data name="run_as_exception" xml:space="preserve">
+    <value>无法以其他用户身份运行</value>
+  </data>
+  <data name="run_as_description" xml:space="preserve">
+    <value>启用“以其他用户身份运行”功能</value>
+  </data>
+  <data name="open_folder" xml:space="preserve">
+    <value>打开文件夹</value>
+  </data>
+</root>
