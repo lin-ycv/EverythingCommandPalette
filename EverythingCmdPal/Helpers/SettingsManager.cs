@@ -1,6 +1,7 @@
 ﻿using EverythingCmdPal.Properties;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
+using Microsoft.Win32;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -66,11 +67,7 @@ namespace EverythingCmdPal.Helpers
             Namespaced(nameof(Exe)),
             Resources.exe,
             Resources.exe_description,
-            Path.Exists("C:\\Program Files\\Everything 1.5a\\Everything64.exe") ? "C:\\Program Files\\Everything 1.5a\\Everything64.exe" :
-                    (Path.Exists("C:\\Program Files\\Everything\\Everything.exe") ? "C:\\Program Files\\Everything\\Everything.exe" :
-                    (Path.Exists("C:\\Program Files (x86)\\Everything 1.5a\\Everything.exe") ? "C:\\Program Files (x86)\\Everything 1.5a\\Everything.exe" :
-                    (Path.Exists("C:\\Program Files (x86)\\Everything\\Everything.exe") ? "C:\\Program Files (x86)\\Everything\\Everything.exe" : string.Empty)))
-            );
+            FindEverythingExecutablePath());
 
         private readonly ToggleSetting _bSendto = new(
             Namespaced(nameof(EnableSend)),
@@ -85,7 +82,7 @@ namespace EverythingCmdPal.Helpers
             "notepad.exe,$P$");
 
         public int SortOption => int.Parse(_sortOption.Value ?? "14", CultureInfo.InvariantCulture);
-        public uint Max => uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
+        public uint Max => uint.TryParse(_max.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint result) ? result : 10; //uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
         public string Prefix => _prefix.Value ?? string.Empty;
         public bool Match => _match.Value;
         public bool Regex => _regex.Value;
@@ -176,6 +173,67 @@ namespace EverythingCmdPal.Helpers
                     _filters.TryAdd(kv[0].ToLowerInvariant(), kv[1] + (kv[1].EndsWith(';') ? ' ' : string.Empty));
             }
 
+        }
+        private static string FindEverythingExecutablePath()
+        {
+            string a64 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Everything 1.5a","Everything64.exe"),  
+                   s64 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Everything","Everything.exe"),  
+                   a32 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Everything 1.5","Everything.exe"),  
+                   s32 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Everything","Everything.exe");  
+
+            if (Path.Exists(a64)) return a64;
+            if (Path.Exists(s64)) return s64;
+            if (Path.Exists(a32)) return a32;
+            if (Path.Exists(s32)) return s32;
+
+            try
+            {
+                // Check uninstall information in registry for installation locations
+                string[] uninstallKeys =
+                [
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Everything",
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Everything 1.5a",
+                    @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Everything",
+                    @"SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Everything 1.5a"
+                ];
+
+                foreach (string subKey in uninstallKeys)
+                {
+                    using RegistryKey key = Registry.LocalMachine.OpenSubKey(subKey);
+                    if (key != null)
+                    {
+                        // Check install location from registry
+                        if (key.GetValue("InstallLocation") is string installLocation && Path.Exists(installLocation))
+                        {
+                            string exe = Path.Combine(installLocation, "Everything.exe");
+                            string exe64 = Path.Combine(installLocation, "Everything64.exe");
+
+                            if (File.Exists(exe64)) return exe64;
+                            if (File.Exists(exe)) return exe;
+                        }
+                        // Try to extract location from uninstall string
+                        if (key.GetValue("UninstallString") is string uninstallString)
+                        {
+                            string dir = Path.GetDirectoryName(uninstallString.Contains('"') ? uninstallString.Split('"')[1] : uninstallString);
+                            if (dir != null)
+                            {
+                                string exe = Path.Combine(dir, "Everything.exe");
+                                string exe64 = Path.Combine(dir, "Everything64.exe");
+
+                                if (File.Exists(exe64)) return exe64;
+                                if (File.Exists(exe)) return exe;
+                            }
+                        }
+                    }
+                }
+                // No executable found
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                ExtensionHost.LogMessage($"Error finding Everything executable: {ex.Message}");
+                return string.Empty;
+            }
         }
     }
 }
