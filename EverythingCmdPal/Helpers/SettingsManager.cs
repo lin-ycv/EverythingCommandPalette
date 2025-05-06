@@ -199,7 +199,7 @@ namespace EverythingCmdPal.Helpers
 
                 foreach (string subKey in uninstallKeys)
                 {
-                    using RegistryKey? key = Registry.LocalMachine.OpenSubKey(subKey);
+                    using RegistryKey key = Registry.LocalMachine.OpenSubKey(subKey);
                     if (key != null)
                     {
                         // Check install location from registry
@@ -214,7 +214,7 @@ namespace EverythingCmdPal.Helpers
                         // Try to extract location from uninstall string
                         if (key.GetValue("UninstallString") is string uninstallString)
                         {
-                            string? dir = Path.GetDirectoryName(uninstallString.Trim().Trim('"').Split(' ')[0]);
+                            string dir = Path.GetDirectoryName(testString.Contains('"') ? testString.Split('"')[1] : testString);
                             if (dir != null)
                             {
                                 string exe = Path.Combine(dir, "Everything.exe");
