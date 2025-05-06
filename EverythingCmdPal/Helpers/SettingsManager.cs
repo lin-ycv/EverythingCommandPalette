@@ -82,7 +82,7 @@ namespace EverythingCmdPal.Helpers
             "notepad.exe,$P$");
 
         public int SortOption => int.Parse(_sortOption.Value ?? "14", CultureInfo.InvariantCulture);
-        public uint Max => uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
+        public uint Max => uint.TryParse(_max.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint result) ? result : 10; //uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
         public string Prefix => _prefix.Value ?? string.Empty;
         public bool Match => _match.Value;
         public bool Regex => _regex.Value;
@@ -214,7 +214,7 @@ namespace EverythingCmdPal.Helpers
                         // Try to extract location from uninstall string
                         if (key.GetValue("UninstallString") is string uninstallString)
                         {
-                            string dir = Path.GetDirectoryName(testString.Contains('"') ? testString.Split('"')[1] : testString);
+                            string dir = Path.GetDirectoryName(uninstallString.Contains('"') ? uninstallString.Split('"')[1] : uninstallString);
                             if (dir != null)
                             {
                                 string exe = Path.Combine(dir, "Everything.exe");
