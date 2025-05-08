@@ -19,6 +19,7 @@ namespace EverythingCmdPal;
 
 internal sealed partial class Results : DynamicListPage
 {
+    private string _searchText = "";
     internal readonly SettingsManager _settings;
     public Results(SettingsManager settings)
     {
@@ -27,6 +28,17 @@ internal sealed partial class Results : DynamicListPage
         PlaceholderText = Resources.noquery;
         _settings = settings;
         ShowDetails = true;
+    }
+    public override string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (_searchText == value) return;
+            var old = _searchText;
+            _searchText = value;
+            UpdateSearchText(old, value);
+        }
     }
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
