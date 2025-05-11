@@ -1,4 +1,5 @@
-﻿using Microsoft.CommandPalette.Extensions.Toolkit;
+﻿using EverythingCmdPal.Helpers;
+using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,12 +11,14 @@ namespace EverythingCmdPal.Commands
     {
         // Extensions for adding run as admin context menu item for applications
         private readonly string[] _appExtensions = [".exe", ".bat", ".appref-ms", ".lnk"];
-        internal CommandContextItem[] LoadCommands(string fullPath, bool isFolder, Results page)
+        internal CommandContextItem[] LoadCommands(string fullPath, bool isFolder)
         {
             List<CommandContextItem> items = [];
-            items.Add(new CommandContextItem(new BrowseCommand(fullPath, isFolder, page))
+            string p = $"\"{(isFolder ? fullPath : Path.GetDirectoryName(fullPath))}\\\" ";
+            items.Add(new CommandContextItem(new Pages.ExplorePage() { pre = p, PlaceholderText = p })
             {
-                RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, false, false, (int)VirtualKey.Enter, 0)
+                RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, false, false, (int)VirtualKey.Enter, 0),
+                
             });
 
             // works but dialog not topmost (handler/UI Thread)
@@ -25,8 +28,8 @@ namespace EverythingCmdPal.Commands
                     RequestedShortcut = KeyChordHelpers.FromModifiers(false, false, true, false, (int)VirtualKey.Enter, 0),
                 });
 
-            if (page._settings.EnableSend)
-                items.Add(new CommandContextItem(new SendCommand(fullPath, page._settings.Sendto))
+            if (Query.Settings.EnableSend)
+                items.Add(new CommandContextItem(new SendCommand(fullPath, Query.Settings.Sendto))
                 {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, false, false, (int)VirtualKey.N, 0),
                 });
@@ -37,7 +40,7 @@ namespace EverythingCmdPal.Commands
                 {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, true, false, (int)VirtualKey.Enter, 0)
                 });
-                if (page._settings.RunAs)
+                if (Query.Settings.RunAs)
                     items.Add(new CommandContextItem(new RunAsCommand(fullPath))
                     {
                         RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, true, false, (int)VirtualKey.U, 0)

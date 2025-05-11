@@ -50,7 +50,6 @@
     <PackageReference Include="Microsoft.Web.WebView2">
       <ExcludeAssets>all</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Shmuelie.WinRTServer" />
     <PackageReference Include="System.Drawing.Common" />
   </ItemGroup>
   <ItemGroup>
@@ -78,10 +77,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <None Update="Everything64.dll">
-      <CopyToOutputDirectory Condition="'$(Platform)' == 'x64'">Always</CopyToOutputDirectory>
+    <None Update="Everything2_x64.dll">
+      <CopyToOutputDirectory Condition="'$(Platform)' == 'x64'">PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="EverythingARM64.dll">
+    <None Update="Everything2_ARM64.dll">
 		<CopyToOutputDirectory Condition="'$(Platform)' == 'ARM64'">PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

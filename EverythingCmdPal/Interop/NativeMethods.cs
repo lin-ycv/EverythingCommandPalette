@@ -76,9 +76,9 @@ namespace EverythingCmdPal.Interop
         }
 
 #if ARM64
-        internal const string dllName = "EverythingARM64.dll";
+        internal const string dllName = "Everything2_ARM64.dll";
 #else
-        internal const string dllName = "Everything64.dll";
+        internal const string dllName = "Everything2_x64.dll";
 #endif
 
         [DllImport(dllName)]
