@@ -15,10 +15,10 @@ Dependencies:
   - PackageIdentifier: Microsoft.WindowsAppRuntime.1.6
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/lin-ycv/EverythingCommandPalette/releases/download/_VERSION_/VictorLin.EverythingCP__VERSION__x64__yazqh14evg2ve.Msix
+  InstallerUrl: _X64_
   InstallerSha256: _HASH64_
 - Architecture: arm64
-  InstallerUrl: https://github.com/lin-ycv/EverythingCommandPalette/releases/download/_VERSION_/VictorLin.EverythingCP__VERSION__arm64__yazqh14evg2ve.Msix
+  InstallerUrl: _ARM64_
   InstallerSha256: _HASHarm64_
 ManifestType: installer
 ManifestVersion: 1.9.0
