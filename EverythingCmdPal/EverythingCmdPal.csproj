@@ -16,6 +16,7 @@
 	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	  <GenerateAppxPackageOnBuild Condition="'$(Configuration)'=='Release'">true</GenerateAppxPackageOnBuild>
+	  <GenerateSatelliteAssembliesForCore Condition="'$(Configuration)'=='Release'">true</GenerateSatelliteAssembliesForCore>
   </PropertyGroup>
 	<PropertyGroup Condition="'$(Platform)' == 'ARM64'">
 		<DefineConstants>ARM64</DefineConstants>

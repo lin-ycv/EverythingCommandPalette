@@ -12,57 +12,41 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4.2.2
-        with:
-          ref: chocolatey
       
       - name: Config and Push
         run: |
           rm .git -Recurse -Force -Confirm:$false
           # $url = "https://api.github.com/repos/lin-ycv/EverythingCommandPalette/releases?per_page=5"
-          $url = "https://api.github.com/repos/lin-ycv/EverythingCommandPalette/releases/latest"
-
-          # $release = (curl.exe -s $url | ConvertFrom-Json) | Where-Object { -not $_.prerelease } | Select-Object -First 1
-          $release = (curl.exe -s $url | ConvertFrom-Json)
-          $ver = if ($release.tag_name -match '\d+\.\d+\.\d+(?:\.\d+)?') { $matches[0] }
-
-          function Get-AssetUrl($assets, $arch) {
-              $asset = $assets | Where-Object { $_.name -like "*EverythingCP_*$arch*.msix" } | Select-Object -First 1
-              return $asset.browser_download_url
-          }
-
-          $x64   = Get-AssetUrl $release.assets "x64"
-          $arm64 = Get-AssetUrl $release.assets "arm64"
-
-          $hashes = @{}
-          $hashLines = (($release.body -split "<!--HASH-->")[1] -split "<!--ENDHASH-->")[0] -split "`r?`n"
-          $hashLines = $hashLines[2..($hashLines.Count - 1)]
-
-          foreach ($line in $hashLines) {
-              $parts = $line -split "\|"
-              if ($parts.Length -eq 2) {
-                  $hashes[$parts[0].Trim()] = $parts[1].Trim()
-              }
-          }
-
-          $x64Hash   = $hashes.GetEnumerator() | Where-Object { $_.Key -match "^msix-x64" } | Select-Object -First 1 | ForEach-Object { $_.Value }
-          $arm64Hash = $hashes.GetEnumerator() | Where-Object { $_.Key -match "^msix-ARM64" } | Select-Object -First 1 | ForEach-Object { $_.Value }
+          # $url = "https://api.github.com/repos/lin-ycv/EverythingCommandPalette/releases/latest"
           
-          # chocolatey
-          echo $ver $x64 $x64Hash $arm64 $arm64Hash
-          Get-ChildItem *.* -Recurse | ForEach { (Get-Content $_) | ForEach  {$_ -Replace '_VERSION_', $ver} | ForEach  {$_ -Replace '_HASH64_', $x64Hash} | ForEach  {$_ -Replace '_HASHarm64_', $arm64Hash} | Set-Content $_ }
-          if([System.IO.File]::Exists("$PWD\1")) { rm 1 }
-          choco pack
-          ls
-          choco apikey --key ${{ secrets.CHOCOLATEY }} --source https://push.chocolatey.org/
-          choco push everythingcmdpal.$ver.nupkg --source https://push.chocolatey.org/
+          # Get Chocolatey manifests
+          git clone --filter=blob:none --no-checkout --depth 1 https://github.com/lin-ycv/chocolatey-pkgs.git
+          cd chocolatey-pkgs
+          git sparse-checkout set --cone
+          git sparse-checkout set .\manifests\everythingcmdpal
+          git checkout main
 
-          # winget
-          echo $ver $x64 $x64Hash $arm64 $arm64Hash
+          # Use Choco-AU to get the data
+          Install-Module Chocolatey-AU -Force
+          cd .\manifests\everythingcmdpal
+          $UpdateOutput = .\update.ps1
+          echo $Latest.Version $Latest.URL64 $Latest.Checksum64 $Latest.ARM64 $Latest.Checksuma64
+
+          # Chocolatey: Check (and Push)
+          $NupkgPath = (($UpdateOutput.Result | Where-Object {$_ -like '*.nupkg''*'}) -split "'")[1]
+          if ($NupkgPath){
+            Write-Output "Newer Version Available: push to Choco"
+            $ApiKey = '${{ secrets.CHOCO_KEY }}'
+            $ChocoServer = 'https://push.chocolatey.org/'
+            choco push $NupkgPath --source $ChocoServer --key $ApiKey
+          }
+          cd ..\..\..
+
+          # Winget
           rm -Path .\* -Recurse -Force
           git clone -b winget https://github.com/lin-ycv/EverythingCommandPalette.git --depth 1
           Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
           cd .\EverythingCommandPalette
           rm .git -Recurse -Force -Confirm:$false
-          Get-ChildItem *.* -Recurse | ForEach { (Get-Content $_) | ForEach  {$_ -Replace '_VERSION_', $ver} | ForEach  {$_ -Replace '_HASH64_', $x64Hash} | ForEach  {$_ -Replace '_HASHarm64_', $arm64Hash} | Set-Content $_ }
-          ..\wingetcreate submit -p "New version: EverythingCmdPal version $ver" -t ${{ secrets.WINGETCREATE_GITHUB }} .
+          Get-ChildItem *.* -Recurse | ForEach { (Get-Content $_) | ForEach  {$_ -Replace '_VERSION_', $Latest.Version} | ForEach  {$_ -Replace '_X64_', $Latest.URL64} | ForEach  {$_ -Replace '_HASH64_', $Latest.Checksum64} | ForEach  {$_ -Replace '_ARM64_', $Latest.ARM64} | ForEach  {$_ -Replace '_HASHarm64_', $Latest.Checksuma64} | Set-Content $_ }
+          ..\wingetcreate submit -p "New version: EverythingCmdPal version $Latest.Version" -t ${{ secrets.WINGETCREATE_GITHUB }} .
