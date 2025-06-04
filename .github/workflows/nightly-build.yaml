@@ -1,0 +1,213 @@
+name: Nightly Build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+env:
+  PROJ_NAME: "EverythingCmdPal"
+  CERT_CN: "5DDB4AD7-AB85-4DF4-A949-F420A3F3D78A"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate date tag
+      id: date
+      run: |
+        $date = Get-Date -Format "yyyyMMdd"
+        $tag = "${date}-nightly"
+        $buildTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
+        echo "tag=$tag" >> $env:GITHUB_OUTPUT
+        echo "build_time=$buildTime" >> $env:GITHUB_OUTPUT
+
+    - name: Build Solution
+      run: |
+        md build
+        dotnet build .\${{env.PROJ_NAME}}.sln -c Release -p:Platform=ARM64
+        dotnet build .\${{env.PROJ_NAME}}.sln -c Release -p:Platform=x64
+        Copy-Item -Path .\${{env.PROJ_NAME}}\bin\ARM64\Release\AppPackages\${{env.PROJ_NAME}}*\${{env.PROJ_NAME}}*.msix -Destination build -Force
+        Copy-Item -Path .\${{env.PROJ_NAME}}\bin\x64\Release\AppPackages\${{env.PROJ_NAME}}*\${{env.PROJ_NAME}}*.msix -Destination build -Force
+
+    - name: Create Certificate & Sign
+      run: |
+        $secret = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
+
+        Write-Host "::add-mask::$secret"
+
+        openssl genrsa -aes256 -passout pass:$secret -out private.key 4096
+
+        openssl req -new -x509 -key private.key -passin pass:$secret -out public.cer -days 2 -sha384 -subj "/CN=${{env.CERT_CN}}" -extensions v3_req -addext "basicConstraints = CA:FALSE" -addext "extendedKeyUsage = 1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.13"
+
+        Copy-Item -Path .\public.cer -Destination build -Force
+
+        openssl pkcs12 -export -inkey private.key -in public.cer -out secure.pfx -certpbe AES-256-CBC -keypbe AES-256-CBC -macalg SHA384 -passin pass:$secret -passout pass:$secret
+
+        New-Item -Path cert -ItemType Directory -Force | Out-Null
+
+        Import-PfxCertificate -FilePath 'secure.pfx' -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString $secret -AsPlainText -Force)
+
+        $signtool = Join-Path ((Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Directory | Where-Object Name -match '^\d+(\.\d+)+$' | Sort-Object {[version]$_.Name} -Descending | Select-Object -First 1).FullName) 'x86\signtool.exe'
+        & $signtool sign /fd SHA256 /a /f secure.pfx /p $secret .\build\${{env.PROJ_NAME}}*.msix
+
+    - name: Delete previous nightly release
+      continue-on-error: true
+      run: |
+        $releases = gh release list --limit 100 --json tagName,isPrerelease | ConvertFrom-Json
+        $nightlyReleases = $releases | Where-Object { $_.tagName -like "*-nightly" -and $_.isPrerelease -eq $true }
+        
+        foreach ($release in $nightlyReleases) {
+          Write-Host "Deleting release: $($release.tagName)"
+          gh release delete $release.tagName --yes --cleanup-tag
+        }
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create installation script and pack
+      run: |
+        $batContent = @'
+        @echo off
+        setlocal enabledelayedexpansion
+
+        goto :begin
+
+        :failed
+        pause
+        exit /b 1
+
+
+        :begin
+        echo CmdPal Extension Installer 
+        echo from SteamCmdPalExtension (https://github.com/sht2017/SteamCmdPalExtension)
+        echo ================================
+        goto :check_architecture
+
+
+        :check_architecture
+        set "ARCH="
+        if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "ARCH=x64"
+        if "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "ARCH=arm64"
+        if "%PROCESSOR_ARCHITEW6432%"=="AMD64" set "ARCH=x64"
+
+        if "%ARCH%"=="" (
+            echo [Error] Unsupported architecture: %PROCESSOR_ARCHITECTURE%
+            goto :failed
+        )
+        goto :run_as_admin
+
+
+        :run_as_admin
+        net session >nul 2>&1
+        if %errorlevel% neq 0 (
+            echo [Info] Elevating to administrator...
+            powershell -Command "Start-Process '%~f0' -Verb RunAs"
+            exit /b
+        )
+        cd %~dp0
+        goto :check_files
+
+
+        :check_files
+        if not exist "public.cer" (
+            echo [Error] Certificate public.cer not found.
+            goto :failed
+        )
+
+        set "MSIX_FOUND=0"
+        for %%f in (*%ARCH%.msix) do (
+            set "MSIX_FOUND=1"
+        )
+        if !MSIX_FOUND! equ 0 (
+            echo [Error] MSIX package not found for architecture %ARCH%.
+            goto :failed
+        )
+
+        for %%f in (*%ARCH%.msix) do (
+            set "MSIX_FILE=%%f"
+            goto :install
+        )
+
+
+        :install
+        set "CERT_THUMBPRINT="
+
+        echo [Info] Installing certificate from public.cer...
+
+        for /f "tokens=*" %%i in ('powershell -Command "try { $cert = Import-Certificate -FilePath \"%~dp0public.cer\" -CertStoreLocation \"Cert:\LocalMachine\Root\" -ErrorAction Stop; Write-Output \"SUCCESS:$^($cert.Thumbprint^)\" } catch { Write-Output \"ERROR:$^($_.Exception.Message^)\" }"') do (
+            set "RESULT=%%i"
+        )
+
+        echo !RESULT! | findstr /C:"SUCCESS:" >nul
+        if %errorlevel% equ 0 (
+            for /f "tokens=2 delims=:" %%j in ("!RESULT!") do (
+                set "CERT_THUMBPRINT=%%j"
+            )
+            echo [Info] Certificate installed successfully. Thumbprint: !CERT_THUMBPRINT!
+        ) else (
+            for /f "tokens=2* delims=:" %%j in ("!RESULT!") do (
+                echo [Error] %%j %%k
+            )
+            goto :failed
+        )
+
+        echo [Info] Installing MSIX package: !MSIX_FILE!
+        set "INSTALL_SUCCESS=0"
+
+        powershell -Command "try { Add-AppxPackage -Path '%~dp0!MSIX_FILE!' -ErrorAction Stop; Write-Host '[Info] MSIX successfully installed.'} catch { Write-Host '[Error] Failed to install MSIX package: ' $_.Exception.Message; exit 1 }"
+        if %errorlevel% equ 0 (
+            set "INSTALL_SUCCESS=1"
+        )
+
+        :clean_cert
+        if not "!CERT_THUMBPRINT!"=="" (
+            echo [Info] Cleaning up certificate with thumbprint: !CERT_THUMBPRINT!
+            powershell -Command "try { Remove-Item -Path 'Cert:\LocalMachine\Root\!CERT_THUMBPRINT!' -ErrorAction Stop; Write-Host '[Info] Certificate removed successfully.' } catch { Write-Host '[Error] Failed to remove certificate: ' $_.Exception.Message }"
+        ) else (
+            echo [Warning] No certificate thumbprint found for cleanup.
+        )
+        goto :end
+
+
+        :end
+        echo ============================
+        if !INSTALL_SUCCESS! equ 1 (
+            echo [Info] Installation completed successfully. The CmdPal extension has been installed on your system.
+            echo [Info] You can now find the application in the Start menu.
+        ) else (
+            echo [Error] Failed to install. Please check the error messages above and try again.
+        )
+        echo ============================
+
+        pause
+        exit /b 0
+        '@
+        $batContent | Out-File -FilePath "build/install.bat" -Encoding ascii
+
+        Compress-Archive -Path build/* -DestinationPath build/build-${{ steps.date.outputs.tag }}.zip -CompressionLevel Optimal -Force
+
+    - name: Upload release artifacts
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.date.outputs.tag }}
+        name:     ${{ steps.date.outputs.tag }}
+        body: |
+          **Nightly Build** - ${{ steps.date.outputs.tag }}
+
+          **Build Info:**
+          - Build Time: ${{ steps.date.outputs.build_time }}
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+        prerelease: true
+        files: |
+          build/*.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
