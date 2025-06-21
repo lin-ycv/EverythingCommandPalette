@@ -1,0 +1,255 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="browse" xml:space="preserve">
+    <value>瀏覽</value>
+  </data>
+  <data name="clipboard_failed" xml:space="preserve">
+    <value>無法貼上至剪貼簿，可能已被其他程式佔用</value>
+  </data>
+  <data name="copy" xml:space="preserve">
+    <value>複製</value>
+  </data>
+  <data name="copy_path" xml:space="preserve">
+    <value>複製路徑</value>
+  </data>
+  <data name="copy_path_ok" xml:space="preserve">
+    <value>已將路徑複製到剪貼簿</value>
+  </data>
+  <data name="delete" xml:space="preserve">
+    <value>刪除</value>
+  </data>
+  <data name="delete_confirm" xml:space="preserve">
+    <value>確定要刪除以下項目？</value>
+  </data>
+  <data name="delete_warn" xml:space="preserve">
+    <value>刪除後將不會放入資源回收筒，無法復原！</value>
+  </data>
+  <data name="ERROR_UNKNOWN" xml:space="preserve">
+    <value>發生未知錯誤</value>
+  </data>
+  <data name="EVERYTHING3_ERROR_IPC_PIPE_NOT_FOUND" xml:space="preserve">
+    <value>Everything 未啟動</value>
+  </data>
+  <data name="exe" xml:space="preserve">
+    <value>Everything 執行檔</value>
+  </data>
+  <data name="exe_description" xml:space="preserve">
+    <value>Everything 程式位置，用於「顯示更多」功能</value>
+  </data>
+  <data name="file_not_found" xml:space="preserve">
+    <value>找不到檔案</value>
+  </data>
+  <data name="instance" xml:space="preserve">
+    <value />
+  </data>
+  <data name="instance_description" xml:space="preserve">
+    <value />
+  </data>
+  <data name="match_path" xml:space="preserve">
+    <value>配對路徑</value>
+  </data>
+  <data name="match_path_description" xml:space="preserve">
+    <value>搜尋時同時配對檔案或資料夾名稱及路徑</value>
+  </data>
+  <data name="max" xml:space="preserve">
+    <value>最多顯示結果數</value>
+  </data>
+  <data name="max_description" xml:space="preserve">
+    <value>設定顯示搜尋結果的最多數量</value>
+  </data>
+  <data name="open_console" xml:space="preserve">
+    <value>在主控台中開啟</value>
+  </data>
+  <data name="open_console_exception" xml:space="preserve">
+    <value>無法開啟主控台</value>
+  </data>
+  <data name="open_exception" xml:space="preserve">
+    <value>無法開啟以下項目：</value>
+  </data>
+  <data name="open_file" xml:space="preserve">
+    <value>開啟檔案</value>
+  </data>
+  <data name="open_folder" xml:space="preserve">
+    <value>開啟資料夾</value>
+  </data>
+  <data name="open_with" xml:space="preserve">
+    <value>開啟方式</value>
+  </data>
+  <data name="prefix" xml:space="preserve">
+    <value>查詢前置詞</value>
+  </data>
+  <data name="prefix_description" xml:space="preserve">
+    <value>自動為所有查詢加入指定的前置詞，前置詞與查詢之間不會加入空格</value>
+  </data>
+  <data name="regex" xml:space="preserve">
+    <value>正則表達式</value>
+  </data>
+  <data name="regex_description" xml:space="preserve">
+    <value>搜尋時啟用正則表達式；建議直接在查詢中使用 regex: 前置詞，而非啟用此選項</value>
+  </data>
+  <data name="run_admin" xml:space="preserve">
+    <value>以系統管理員身份執行</value>
+  </data>
+  <data name="run_admin_exception" xml:space="preserve">
+    <value>無法以系統管理員身份執行</value>
+  </data>
+  <data name="run_as" xml:space="preserve">
+    <value>以其他使用者身份執行</value>
+  </data>
+  <data name="run_as_description" xml:space="preserve">
+    <value>啟用「以其他使用者身份執行」功能</value>
+  </data>
+  <data name="run_as_exception" xml:space="preserve">
+    <value>無法以其他使用者身份執行</value>
+  </data>
+  <data name="sendto" xml:space="preserve">
+    <value>使用指定程式開啟</value>
+  </data>
+  <data name="sendto_description" xml:space="preserve">
+    <value>使用指定程式開啟所選檔案，程式路徑與參數之間使用半形逗號 (,) 分隔，$P$ 代表所選結果的路徑</value>
+  </data>
+  <data name="sendto_enable" xml:space="preserve">
+    <value>啟用「使用指定程式開啟」功能</value>
+  </data>
+  <data name="sendto_enable_description" xml:space="preserve">
+    <value>設定是否啟用「使用指定程式開啟」功能</value>
+  </data>
+  <data name="sendto_failed" xml:space="preserve">
+    <value>無法使用指定程式開啟：</value>
+  </data>
+  <data name="show_more" xml:space="preserve">
+    <value>顯示更多結果</value>
+  </data>
+  <data name="show_more_description" xml:space="preserve">
+    <value>透過 Everything 顯示更多搜尋結果</value>
+  </data>
+  <data name="show_more_subtitle" xml:space="preserve">
+    <value>透過 Everything 檢視搜尋結果</value>
+  </data>
+  <data name="sort" xml:space="preserve">
+    <value>排序方式</value>
+  </data>
+  <data name="sort_description" xml:space="preserve">
+    <value>設定搜尋結果的排序方式</value>
+  </data>
+  <data name="top_level_subtitle" xml:space="preserve">
+    <value>使用 Everything 快速搜尋檔案及資料夾</value>
+  </data>
+</root>
