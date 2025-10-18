@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<!-- Hide console window -->
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<DebugType>none</DebugType>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+		<DebugType>none</DebugType>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<DebugType>none</DebugType>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+		<DebugType>none</DebugType>
+	</PropertyGroup>
+	<Target Name="CopyToExternFolder" AfterTargets="Build">
+		<!-- Set the WinRT project root path relative to ClipboardHelper project -->
+		<PropertyGroup>
+			<!-- Adjust this relative path to point to your WinRT project root -->
+			<ECPRoot>..\EverythingCmdPal</ECPRoot>
+			<ExternFolder>$(ECPRoot)\Win32</ExternFolder>
+		</PropertyGroup>
+
+		<!-- Create the Extern folder if it doesn't exist -->
+		<MakeDir Directories="$(ExternFolder)" Condition="Exists('$(WinRTProjectRoot)')" />
+
+		<!-- Copy all output files from ClipboardHelper's output to WinRT Extern folder -->
+		<ItemGroup>
+			<OutputFiles Include="$(OutputPath)*.*" />
+		</ItemGroup>
+
+		<Copy SourceFiles="@(OutputFiles)" DestinationFolder="$(ExternFolder)" SkipUnchangedFiles="true" />
+	</Target>
+</Project>

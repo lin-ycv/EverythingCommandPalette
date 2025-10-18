@@ -11,11 +11,11 @@ namespace EverythingCmdPal.Commands
     {
         // Extensions for adding run as admin context menu item for applications
         private readonly string[] _appExtensions = [".exe", ".bat", ".appref-ms", ".lnk"];
-        internal CommandContextItem[] LoadCommands(string fullPath, bool isFolder)
+        internal CommandContextItem[] LoadCommands(string fullPath, bool isFolder, ResultsPage page)
         {
             List<CommandContextItem> items = [];
             string p = $"\"{(isFolder ? fullPath : Path.GetDirectoryName(fullPath))}\\\" ";
-            items.Add(new CommandContextItem(new Pages.ExplorePage() { pre = p, PlaceholderText = p })
+            items.Add(new CommandContextItem(new BrowseCommand(p, page))
             {
                 RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, false, false, (int)VirtualKey.Enter, 0),
                 
@@ -36,12 +36,12 @@ namespace EverythingCmdPal.Commands
 
             if (CanFileBeRunAsAdmin(fullPath))
             {
-                items.Add(new CommandContextItem(new RunAdminCommand(fullPath))
+                items.Add(new CommandContextItem(new RunAdminCommand(fullPath, isFolder))
                 {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, true, false, (int)VirtualKey.Enter, 0)
                 });
                 if (Query.Settings.RunAs)
-                    items.Add(new CommandContextItem(new RunAsCommand(fullPath))
+                    items.Add(new CommandContextItem(new RunAsCommand(fullPath, isFolder))
                     {
                         RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, true, false, (int)VirtualKey.U, 0)
                     });
@@ -51,15 +51,15 @@ namespace EverythingCmdPal.Commands
                 new CommandContextItem(new OpenFolderCommand(fullPath)){
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,true,false,(int)VirtualKey.E, 0)
                 },
-                // Not Working, need UI thread
+                // Working using win32Helper
                 new CommandContextItem(new CopyCommand(fullPath, isFolder)) {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.C, 0)
                 },
                 new CommandContextItem(new CopyPathCommand(fullPath)) {
-                    RequestedShortcut = KeyChordHelpers.FromModifiers(true,true,false,false, (int)VirtualKey.C, 0)
-                },
-                new CommandContextItem(new OpenConsoleCommand(fullPath)) {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,true,false, (int)VirtualKey.C, 0)
+                },
+                new CommandContextItem(new OpenConsoleCommand(fullPath, isFolder)) {
+                    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,true,false, (int)VirtualKey.T, 0)
                 },
                 // Not working in cmdPal
                 //new CommandContextItem(new ContextMenuCommand(fullPath, isFolder)) {
@@ -69,7 +69,7 @@ namespace EverythingCmdPal.Commands
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.Delete, 0)
                 },
                 new CommandContextItem(new PropertiesCommand(fullPath)) {
-                    RequestedShortcut = KeyChordHelpers.FromModifiers(false,true,false,false, (int)VirtualKey.Enter, 0)
+                    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.I, 0)
                 },
                 ]);
 

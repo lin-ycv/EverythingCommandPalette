@@ -10,17 +10,19 @@ namespace EverythingCmdPal.Commands
     internal sealed partial class OpenConsoleCommand : InvokableCommand
     {
         private readonly string _fullPath;
+        private readonly bool _isFolder;
 
-        internal OpenConsoleCommand(string fullPath)
+        internal OpenConsoleCommand(string fullPath, bool isFolder)
         {
             _fullPath = fullPath;
             Name = Resources.open_console;
             Icon = new IconInfo("\uE756");
+            _isFolder = isFolder;
         }
 
         public override CommandResult Invoke()
         {
-            var path = Path.GetDirectoryName(_fullPath);
+            var path = _isFolder ? _fullPath : Path.GetDirectoryName(_fullPath);
             string msg = string.Empty;
             if (ShellHelper.OpenInShell("cmd.exe", ref msg, null, path))
             {

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.13.35507.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EverythingCmdPal", "EverythingCmdPal\EverythingCmdPal.csproj", "{79F86DE5-70B1-4EC1-9832-DF428B55E466}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Helper", "Helper\Helper.csproj", "{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -25,6 +27,14 @@ Global
 		{79F86DE5-70B1-4EC1-9832-DF428B55E466}.Release|x64.ActiveCfg = Release|x64
 		{79F86DE5-70B1-4EC1-9832-DF428B55E466}.Release|x64.Build.0 = Release|x64
 		{79F86DE5-70B1-4EC1-9832-DF428B55E466}.Release|x64.Deploy.0 = Release|x64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Debug|ARM64.Build.0 = Debug|ARM64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Debug|x64.ActiveCfg = Debug|x64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Debug|x64.Build.0 = Debug|x64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Release|ARM64.ActiveCfg = Release|ARM64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Release|ARM64.Build.0 = Release|ARM64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Release|x64.ActiveCfg = Release|x64
+		{AED68CAC-887C-4550-A8CB-4A6F11BB7D93}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

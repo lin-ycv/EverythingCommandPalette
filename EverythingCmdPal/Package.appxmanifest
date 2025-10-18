@@ -11,7 +11,7 @@
   <Identity
     Name="VictorLin.EverythingCP"
     Publisher="CN=5DDB4AD7-AB85-4DF4-A949-F420A3F3D78A"
-    Version="0.2.0.0" />
+    Version="0.5.25082.0" />
   <!-- When you're ready to publish your extension, you'll need to change the
        Publisher= to match your own identity -->
 

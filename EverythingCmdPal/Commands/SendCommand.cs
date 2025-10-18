@@ -16,13 +16,13 @@ namespace EverythingCmdPal.Commands
             Icon = new("\uE8A7");
             var split = exe.Split(',');
             _exe = split[0];
-            _arg = split[1].Replace("$P$", _fullPath);
+            _arg = split[1].Replace("$P$", $"\"{_fullPath}\"");
         }
 
         public override CommandResult Invoke()
         {
             string msg = string.Empty;
-            if (ShellHelper.OpenInShell(_exe, ref msg, $"\"{_arg}\""))
+            if (ShellHelper.OpenInShell(_exe, ref msg, _arg))
             {
                 _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
                 return CommandResult.Dismiss();

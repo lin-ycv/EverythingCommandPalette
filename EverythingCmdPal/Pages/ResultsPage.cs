@@ -46,12 +46,12 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
             {
                 foreach (Result r in results)
                 {
-                    _results.Add(new ListItem(new OpenCommand(r.FullName))
+                    _results.Add(new ListItem(new OpenCommand(r.FullName, r.IsFolder))
                     {
                         Title = r.FileName,
                         Subtitle = r.FilePath,
                         Icon = r.Icon,
-                        MoreCommands = new CommandHandler().LoadCommands(r.FullName, r.IsFolder),
+                        MoreCommands = new CommandHandler().LoadCommands(r.FullName, r.IsFolder, this),
                         Details = new Details()
                         {
                             //// Title and Body text is large and unselectable, but displayed right under HeroImage

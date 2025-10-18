@@ -1,7 +1,10 @@
-﻿using EverythingCmdPal.Interop;
+﻿using EverythingCmdPal.Helpers;
+using EverythingCmdPal.Interop;
 using EverythingCmdPal.Properties;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -23,33 +26,37 @@ namespace EverythingCmdPal.Commands
 
         public override CommandResult Invoke()
         {
+            // Use fool-proof win32helper
+            Win32Helper.Execute(_fullPath, "--copy");
+
             //// apparently Clipboard.SetContentWithOptions only works on UI thread?
             //// Clipboardhelper currently only deals with texts
-            Clipboard.Clear();
-            DataPackage package = new() { RequestedOperation = DataPackageOperation.Copy };
-            Task.Run(async () =>
-            {
-                try
-            {
-                package.SetStorageItems([
-                    _isFolder ?
-                        await StorageFolder.GetFolderFromPathAsync(_fullPath)/*.GetResults()*/:
-                        await StorageFile.GetFileFromPathAsync(_fullPath)/*.GetResults()*/,
-                        ]);
-                if (!Clipboard.SetContentWithOptions(package, new ClipboardContentOptions()))
-                {
-                    throw new InvalidOperationException("SetContentWithOptions returned false");
-                }
-                _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
-                Clipboard.Flush();
-            }
-            catch (Exception e)
-            {
-                ExtensionHost.LogMessage($"EPT-CP: {Resources.clipboard_failed}\n{_fullPath}\n{e.Message}");
-                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.clipboard_failed}\n{_fullPath}", State = MessageState.Error }, StatusContext.Page);
-            }
-            });
+            //Clipboard.Clear();
+            //DataPackage package = new() { RequestedOperation = DataPackageOperation.Copy };
+            //Task.Run(async () =>
+            //{
+            //    try
+            //{
+            //    package.SetStorageItems([
+            //        _isFolder ?
+            //            await StorageFolder.GetFolderFromPathAsync(_fullPath)/*.GetResults()*/:
+            //            await StorageFile.GetFileFromPathAsync(_fullPath)/*.GetResults()*/,
+            //            ]);
+            //    if (!Clipboard.SetContentWithOptions(package, new ClipboardContentOptions()))
+            //    {
+            //        throw new InvalidOperationException("SetContentWithOptions returned false");
+            //    }
+            //    _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+            //    Clipboard.Flush();
+            //}
+            //catch (Exception e)
+            //{
+            //    ExtensionHost.LogMessage($"EPT-CP: {Resources.clipboard_failed}\n{_fullPath}\n{e.Message}");
+            //    //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.clipboard_failed}\n{_fullPath}", State = MessageState.Error }, StatusContext.Page);
+            //}
+            //});
 
+            _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
             return CommandResult.Dismiss();
         }
     }

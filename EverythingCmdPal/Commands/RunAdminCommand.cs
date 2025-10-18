@@ -10,18 +10,21 @@ namespace EverythingCmdPal.Commands
     internal sealed partial class RunAdminCommand : InvokableCommand
     {
         private readonly string _fullPath;
+        private readonly bool _isFolder;
 
-        internal RunAdminCommand(string fullname)
+        internal RunAdminCommand(string fullname, bool isFolder)
         {
             _fullPath = fullname;
             Name = Resources.run_admin;
             Icon = new("\uE7EF");
+            _isFolder = isFolder;
         }
 
         public override CommandResult Invoke()
         {
+            var path = _isFolder ? _fullPath : Path.GetDirectoryName(_fullPath);
             string msg = string.Empty;
-            if (ShellHelper.OpenInShell(_fullPath, ref msg, null, Path.GetDirectoryName(_fullPath), "runAs"))
+            if (ShellHelper.OpenInShell(_fullPath, ref msg, null, path, "runAs"))
             {
                 _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
                 return CommandResult.Dismiss();

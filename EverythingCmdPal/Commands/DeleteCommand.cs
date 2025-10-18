@@ -1,5 +1,8 @@
-﻿using EverythingCmdPal.Properties;
+﻿using EverythingCmdPal.Helpers;
+using EverythingCmdPal.Properties;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace EverythingCmdPal.Commands
@@ -15,12 +18,16 @@ namespace EverythingCmdPal.Commands
         }
         public override CommandResult Invoke()
         {
+            // Use fool-proof win32helper
+            Win32Helper.Execute(_fullPath, "--delete");
+
             // should use FileSystem.DeleteFile
             // but doesn't work on non-ui thread
-            if (_isFolder)
-                Directory.Delete(_fullPath, true);
-            else
-                File.Delete(_fullPath);
+            //if (_isFolder)
+            //    Directory.Delete(_fullPath, true);
+            //else
+            //    File.Delete(_fullPath);
+
             return CommandResult.Dismiss();
         }
     }
