@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+<data name="browse" xml:space="preserve">
+    <value>עיון</value>
+  </data>
+  <data name="clipboard_failed" xml:space="preserve">
+    <value>ההגדרה של תוכן הלוח נכשלה, ייתכן שתוכנית אחרת שולטת בו</value>
+  </data>
+  <data name="context_failed" xml:space="preserve">
+    <value>פתיחת תפריט ההקשר נכשלה עבור:</value>
+  </data>
+  <data name="context_menu" xml:space="preserve">
+    <value>פתח תפריט הקשר</value>
+  </data>
+  <data name="copy" xml:space="preserve">
+    <value>העתק</value>
+  </data>
+  <data name="copy_ok" xml:space="preserve">
+    <value>קובץ/תיקייה הועתק ללוח.</value>
+  </data>
+  <data name="copy_path" xml:space="preserve">
+    <value>העתק כנתיב</value>
+  </data>
+  <data name="copy_path_ok" xml:space="preserve">
+    <value>הנתיב הועתק ללוח.</value>
+  </data>
+  <data name="delete" xml:space="preserve">
+    <value>מחק</value>
+  </data>
+  <data name="delete_confirm" xml:space="preserve">
+    <value>האם אתה בטוח שברצונך למחוק:</value>
+  </data>
+  <data name="delete_warn" xml:space="preserve">
+    <value>הוא יימחק מבלי להישלח לסל המיחזור.
+פעולה זו תהיה בלתי הפיכה.</value>
+  </data>
+  <data name="everything_not_running" xml:space="preserve">
+    <value>האם אתה בטוח ש-Everything פועל?</value>
+  </data>
+  <data name="exe" xml:space="preserve">
+    <value>קובץ הפעלה של Everything (exe)</value>
+  </data>
+  <data name="exe_description" xml:space="preserve">
+    <value>מיקום קובץ ההפעלה של Everything.
+משמש עבור האפשרות "הצג עוד".</value>
+  </data>
+  <data name="file_not_found" xml:space="preserve">
+    <value>הקובץ לא נמצא</value>
+  </data>
+  <data name="match_path" xml:space="preserve">
+    <value>התאמת נתיב</value>
+  </data>
+  <data name="match_path_description" xml:space="preserve">
+    <value>חפש נתיב בנוסף לשם קובץ/תיקייה.</value>
+  </data>
+  <data name="max" xml:space="preserve">
+    <value>מקסימום</value>
+  </data>
+  <data name="max_description" xml:space="preserve">
+    <value>הכמות המירבית של תוצאות להצגה.</value>
+  </data>
+  <data name="noquery" xml:space="preserve">
+    <value>התחל להקליד כאן לחיפוש עם Everything</value>
+  </data>
+  <data name="open_console" xml:space="preserve">
+    <value>פתח במסוף</value>
+  </data>
+  <data name="open_console_exception" xml:space="preserve">
+    <value>לא ניתן לפתוח מסוף.</value>
+  </data>
+  <data name="open_exception" xml:space="preserve">
+    <value>לא ניתן לפתוח:</value>
+  </data>
+  <data name="open_file" xml:space="preserve">
+    <value>פתח קובץ</value>
+  </data>
+  <data name="open_properties" xml:space="preserve">
+    <value>פתח מאפיינים</value>
+  </data>
+  <data name="open_with" xml:space="preserve">
+    <value>פתח באמצעות</value>
+  </data>
+  <data name="prefix" xml:space="preserve">
+    <value>קידומת חיפוש</value>
+  </data>
+  <data name="prefix_description" xml:space="preserve">
+    <value>מוסיף קידומת לכל חיפוש, כך שתוכל תמיד לכלול מסננים/פרמטרים מסוימים מבלי להקליד אותם בכל פעם.
+שים לב: רווח אינו מתווסף אוטומטית בין הקידומת לבין החיפוש.</value>
+  </data>
+  <data name="regex" xml:space="preserve">
+    <value>ביטוי רגולרי (RegEx)</value>
+  </data>
+  <data name="regex_description" xml:space="preserve">
+    <value>אפשר ביטוי רגולרי בחיפוש.
+מומלץ להשתמש בחיפוש בביטוי-regex: במקום לאפשר אפשרות זו.</value>
+  </data>
+  <data name="run_admin" xml:space="preserve">
+    <value>הפעל כמנהל</value>
+  </data>
+  <data name="run_admin_exception" xml:space="preserve">
+    <value>לא ניתן להפעיל כמנהל</value>
+  </data>
+  <data name="sendto_description" xml:space="preserve">
+    <value>שלח תוצאה נבחרת לתוכנית שנבחרה.
+הפרד את נתיב התוכנית והארגומנט בפסיק (,) כאשר $P$ מייצג את נתיב התוצאה שנבחרה.</value>
+  </data>
+  <data name="sendto" xml:space="preserve">
+    <value>שלח אל מה שנבחר</value>
+  </data>
+  <data name="show_more" xml:space="preserve">
+    <value>הצג עוד</value>
+  </data>
+  <data name="show_more_description" xml:space="preserve">
+    <value>הצג תוצאה שפותחת את Everything עם החיפוש הנוכחית.</value>
+  </data>
+  <data name="show_more_subtitle" xml:space="preserve">
+    <value>הצג את תוצאות החיפוש בחלון הראשי של Everything.</value>
+  </data>
+  <data name="sort" xml:space="preserve">
+    <value>מיין</value>
+  </data>
+  <data name="sort_description" xml:space="preserve">
+    <value>הגדר את שיטת המיון של התוצאות.</value>
+  </data>
+  <data name="top_level_subtitle" xml:space="preserve">
+    <value>מצא במהירות קבצים ותיקיות עם Everything</value>
+  </data>
+  <data name="unknown_error" xml:space="preserve">
+    <value>שגיאה לא ידועה</value>
+  </data>
+  <data name="sendto_enable" xml:space="preserve">
+    <value>אפשר 'שלח אל'</value>
+  </data>
+  <data name="sendto_enable_description" xml:space="preserve">
+    <value>הגדר אם יש להציג את האפשרות 'שלח אל'.</value>
+  </data>
+  <data name="sendto_failed" xml:space="preserve">
+    <value>שלח אל נכשל:</value>
+  </data>
+  <data name="run_as" xml:space="preserve">
+    <value>הפעל כמשתמש</value>
+  </data>
+  <data name="run_as_exception" xml:space="preserve">
+    <value>לא ניתן לבצע כמשתמש</value>
+  </data>
+  <data name="run_as_description" xml:space="preserve">
+    <value>אפשר 'הפעל כמשתמש'</value>
+  </data>
+  <data name="open_folder" xml:space="preserve">
+    <value>פתח תיקייה</value>
+  </data>
+  <data name="filter_path" xml:space="preserve">
+    <value>filters.toml</value>
+  </data>
+  <data name="filter_path_description" xml:space="preserve">
+    <value>תיקייה המכילה את הקובץ filters.toml המותאם אישית.
+אם filters.toml אינו קיים בתיקייה זו, תוחל התבנית המוגדרת כברירת מחדל.</value>
+  </data>
+</root>
