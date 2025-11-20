@@ -12,10 +12,48 @@ using System.IO;
 
 namespace EverythingCmdPal.Helpers
 {
+    record TheResult(DateTimeOffset Timestamp, List<Result> Results);
+
     internal static class Query
     {
         internal static readonly SettingsManager Settings = new();
+        static Dictionary<string, TheResult> _cache = [];
+        private static readonly Lock _lock = new();
+
+        // TODO: Lol obviously not actually 5h for merge, just for fiddling
+        static TimeSpan _cacheExpiry = TimeSpan.FromHours(5);
+
         internal static List<Result> Search(string query, CancellationToken token)
+        {
+            lock (_lock)
+            {
+                List<Result> results = [];
+
+                // Caching multiple results here as sometimes we can get multiple fallbackItems trying to call in here at once.
+                // If we only cache the last item, we can end up tick-tocking back and forth between the last few searches.
+                if (_cache.TryGetValue(query, out var previous) && DateTimeOffset.Now - previous.Timestamp < _cacheExpiry)
+                {
+                    return previous.Results;
+                }
+
+                if (token.IsCancellationRequested) return results;
+
+                try
+                {
+                    
+                    // The existing search method
+                    results = SearchEverything(query, token);
+                }
+                catch
+                {
+                    // Do nothing
+                }
+
+                return results;
+            }
+        }
+
+        static List<Result> SearchEverything(string query, CancellationToken token)
         {
             string orgQuery = query;
             token.ThrowIfCancellationRequested();
@@ -30,7 +68,7 @@ namespace EverythingCmdPal.Helpers
             Everything_SetSearchW(query);
             if (!Everything_QueryW(true) || token.IsCancellationRequested)
             {
-                return null;
+                return [];
             }
             token.ThrowIfCancellationRequested();
 
@@ -87,8 +125,14 @@ namespace EverythingCmdPal.Helpers
                 resultsList.Add(r);
             }
             token.ThrowIfCancellationRequested();
+
+            _cache[query] = new TheResult(DateTimeOffset.Now, resultsList);
+
+            // TODO: cleanup cache?
+
             return resultsList;
         }
+
         internal static List<ListItem> EverythingFailed()
         {
             // Throwing an exception would make sense, however,
