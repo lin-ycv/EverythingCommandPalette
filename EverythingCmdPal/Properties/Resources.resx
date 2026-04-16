@@ -266,6 +266,18 @@ Separate program path and argument with comma (,) where $P$ represents the path 
   <data name="open_folder" xml:space="preserve">
     <value>Open folder</value>
   </data>
+  <data name="filter_all" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="filter_folders" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="filter_files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="filter_custom" xml:space="preserve">
+    <value>Custom: {0}</value>
+  </data>
   <data name="filter_path" xml:space="preserve">
     <value>filters.toml</value>
   </data>

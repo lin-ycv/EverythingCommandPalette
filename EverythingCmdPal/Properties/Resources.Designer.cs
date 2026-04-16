@@ -198,6 +198,42 @@ namespace EverythingCmdPal.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All.
+        /// </summary>
+        internal static string filter_all {
+            get {
+                return ResourceManager.GetString("filter_all", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Custom {0}.
+        /// </summary>
+        internal static string filter_custom {
+            get {
+                return ResourceManager.GetString("filter_custom", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Files.
+        /// </summary>
+        internal static string filter_files {
+            get {
+                return ResourceManager.GetString("filter_files", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Folders.
+        /// </summary>
+        internal static string filter_folders {
+            get {
+                return ResourceManager.GetString("filter_folders", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to filters.toml.
         /// </summary>
         internal static string filter_path {

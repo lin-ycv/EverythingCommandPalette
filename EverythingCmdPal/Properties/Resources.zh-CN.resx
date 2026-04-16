@@ -261,4 +261,16 @@
   <data name="open_folder" xml:space="preserve">
     <value>打开文件夹</value>
   </data>
+  <data name="filter_all" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="filter_folders" xml:space="preserve">
+    <value>文件夹</value>
+  </data>
+  <data name="filter_files" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="filter_custom" xml:space="preserve">
+    <value>自定义：{0}</value>
+  </data>
 </root>

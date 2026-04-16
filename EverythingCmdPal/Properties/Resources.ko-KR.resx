@@ -266,6 +266,18 @@
   <data name="open_folder" xml:space="preserve">
     <value>경로 열기</value>
   </data>
+  <data name="filter_all" xml:space="preserve">
+    <value>전체</value>
+  </data>
+  <data name="filter_folders" xml:space="preserve">
+    <value>폴더</value>
+  </data>
+  <data name="filter_files" xml:space="preserve">
+    <value>파일</value>
+  </data>
+  <data name="filter_custom" xml:space="preserve">
+    <value>사용자 지정: {0}</value>
+  </data>
   <data name="filter_path" xml:space="preserve">
     <value>filters.toml</value>
   </data>
