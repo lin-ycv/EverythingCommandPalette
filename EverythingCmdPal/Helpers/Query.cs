@@ -84,6 +84,8 @@ namespace EverythingCmdPal.Helpers
                 }
                 r.Icon ??= IconHelpers.FromRelativePath("Assets\\EverythingPt.svg");
 
+                r.FileType = Interop.Shell32Methods.GetFileTypeDescription(r.FullName);
+
                 resultsList.Add(r);
             }
             token.ThrowIfCancellationRequested();

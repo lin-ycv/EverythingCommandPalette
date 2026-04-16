@@ -75,10 +75,10 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
                                         }
                                     },
                                     new DetailsElement() {
-                                        Key = "Extension",
+                                        Key = "Type",
                                         Data = new DetailsTags(){
                                             Tags=[
-                                                new Tag(r.Extension ?? string.Empty){
+                                                new Tag(r.FileType ?? string.Empty){
                                                     Foreground = ColorHelpers.FromRgb(51,51,51),
                                                     Background=ColorHelpers.FromRgb(224,204,179)},
                                             ]
