@@ -7,14 +7,17 @@ using System;
 using EverythingCmdPal.Helpers;
 using EverythingCmdPal.Commands;
 using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
 
 namespace EverythingCmdPal;
 
 internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHandler
 {
     private readonly List<IListItem> _results = [];
-    private readonly Lock _lock = new();
-    private CancellationTokenSource _cts = new();
+    private List<Result> _currentResults = [];
+    private readonly Channel<string> _queryChannel;
+    private readonly CancellationTokenSource _disposeCts = new();
     private readonly ResultsFilters _filters;
     private string _searchText = string.Empty;
     internal string pre = string.Empty;
@@ -28,96 +31,152 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
         _filters = new ResultsFilters();
         _filters.PropChanged += OnFiltersChanged;
         Filters = _filters;
-    }
-    public override IListItem[] GetItems() => [.. _results];
-    public void UpdateQuery(string query)
-    {
-        IsLoading = true;
-        CancellationTokenSource cts;
-        lock (_lock)
+
+        // Bounded channel with capacity 1: new queries overwrite any pending query.
+        // This naturally debounces rapid keystrokes — only the latest query matters.
+        _queryChannel = Channel.CreateBounded<string>(new BoundedChannelOptions(1)
         {
-            _cts.Cancel();
-            _cts = new();
-            cts = _cts;
-        }
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true,
+            SingleWriter = false,
+        });
+
+        // Start the single consumer that serializes all Everything SDK access
+        _ = Task.Run(ProcessQueriesAsync);
+    }
+
+    public override IListItem[] GetItems() => [.. _results];
+
+    /// <summary>
+    /// Single consumer loop: reads queries from the channel and runs searches serially.
+    /// Because there is only one reader, the Everything SDK's global state is never
+    /// accessed concurrently. After the blocking Everything_QueryW returns, we check
+    /// whether a newer query arrived while we were blocked — if so, we discard the
+    /// stale results and loop to process the newer query immediately.
+    /// </summary>
+    private async Task ProcessQueriesAsync()
+    {
+        var reader = _queryChannel.Reader;
         try
         {
-            _results.Clear();
-            string q = $"{pre}{query}";
-            List<Result> results = Query.Search(q, cts.Token);
-            if (results == null)
-                _results.AddRange(Query.EverythingFailed());
-            else
+            await foreach (string query in reader.ReadAllAsync(_disposeCts.Token))
             {
-                foreach (Result r in results)
+                IsLoading = true;
+                try
                 {
-                    _results.Add(new ListItem(new OpenCommand(r.FullName, r.IsFolder))
+                    DisposeResults(_currentResults);
+                    _results.Clear();
+                    string q = $"{pre}{query}";
+                    List<Result> results = await Query.Search(q, _disposeCts.Token);
+
+                    // After the search completes, check if a newer query arrived
+                    // while we were blocked in Everything_QueryW. If so, discard
+                    // these stale results and let the loop pick up the new query.
+                    if (reader.TryRead(out string newerQuery))
                     {
-                        Title = r.FileName,
-                        Subtitle = r.FilePath,
-                        Icon = r.Icon,
-                        MoreCommands = new CommandHandler().LoadCommands(r.FullName, r.IsFolder, this),
-                        Details = new Details()
+                        // Dispose the stale results we just fetched
+                        DisposeResults(results);
+                        // Re-enqueue the newer query so ReadAllAsync picks it up
+                        _queryChannel.Writer.TryWrite(newerQuery);
+                        IsLoading = false;
+                        continue;
+                    }
+
+                    _currentResults = results ?? [];
+
+                    if (results == null)
+                        _results.AddRange(Query.EverythingFailed());
+                    else
+                    {
+                        foreach (Result r in results)
                         {
-                            //// Title and Body text is large and unselectable, but displayed right under HeroImage
-                            //Title = fileName,
-                            //Body = fileName,                    
-                            HeroImage = r.Icon,
-                            Metadata = [
-                                new DetailsElement() {
-                                        Key = r.FileName,
-                                        Data = new DetailsLink() {
-                                            Text = r.FilePath
-                                        }
-                                    },
-                                    new DetailsElement() {
-                                        Data = new DetailsSeparator()
-                                    },
-                                    new DetailsElement(){
-                                        Key = "Size",
-                                        Data = new DetailsLink(){
-                                            Text = r.SizeKB.ToString("N0", CultureInfo.InvariantCulture)+" KB"
-                                        }
-                                    },
-                                    new DetailsElement() {
-                                        Key = "Type",
-                                        Data = new DetailsTags(){
-                                            Tags=[
-                                                new Tag(r.FileType ?? string.Empty){
-                                                    Foreground = ColorHelpers.FromRgb(51,51,51),
-                                                    Background=ColorHelpers.FromRgb(224,204,179)},
-                                            ]
-                                        }
-                                    },
-                                    new DetailsElement(){
-                                        Key = "Modified Date",
-                                        Data = new DetailsLink(){
-                                            Text = r.ModifiedDate
-                                        }
-                                    }
-                             ],
-                        },
-                    });
+                            ListItem resultsItem = new(new OpenCommand(r.FullName, r.IsFolder))
+                            {
+                                Title = r.FileName,
+                                Subtitle = r.FilePath,
+                                Icon = r.Icon,
+                                MoreCommands = new CommandHandler().LoadCommands(r.FullName, r.IsFolder, this),
+                            }; 
+
+                            if (r.Preview)
+                            {
+                                resultsItem.Details = new Details()
+                                {
+                                    //// Title and Body text is large and unselectable, but displayed right under HeroImage
+                                    //Title = fileName,
+                                    //Body = fileName,                    
+                                    HeroImage = r.Icon,
+                                    Metadata = [
+                                        new DetailsElement() {
+                                                Key = r.FileName,
+                                                Data = new DetailsLink() {
+                                                    Text = r.FilePath
+                                                }
+                                            },
+                                            new DetailsElement() {
+                                                Data = new DetailsSeparator()
+                                            },
+                                            new DetailsElement(){
+                                                Key = "Size",
+                                                Data = new DetailsLink(){
+                                                    Text = r.SizeKB.ToString("N0", CultureInfo.InvariantCulture)+" KB"
+                                                }
+                                            },
+                                            new DetailsElement() {
+                                                Key = "Type",
+                                                Data = new DetailsTags(){
+                                                    Tags=[
+                                                        new Tag(r.FileType ?? r.Extension ?? string.Empty){
+                                                            Foreground = ColorHelpers.FromRgb(51,51,51),
+                                                            Background=ColorHelpers.FromRgb(224,204,179)},
+                                                    ]
+                                                }
+                                            },
+                                            new DetailsElement(){
+                                                Key = "Modified Date",
+                                                Data = new DetailsLink(){
+                                                    Text = r.ModifiedDate
+                                                }
+                                            }
+                                     ],
+                                };
+                            }
+
+                            _results.Add(resultsItem);
+                            
+                        }
+                        if (_results.Count != 0 && Query.Settings.ShowMore)
+                        {
+                            _results.Add(new ListItem(new ShowMoreCommand(q, Query.Settings.Exe))
+                            {
+                                Title = Resources.show_more,
+                                Subtitle = Resources.show_more_subtitle,
+                                Icon = IconHelpers.FromRelativePath("Assets\\EverythingPT.svg"), //new IconInfo("\uF78B"),
+                            });
+                        }
+                    }
+                    IsLoading = false;
+                    RaiseItemsChanged(_results.Count);
                 }
-                if (_results.Count != 0 && Query.Settings.ShowMore)
-                {
-                    _results.Add(new ListItem(new ShowMoreCommand(q, Query.Settings.Exe))
-                    {
-                        Title = Resources.show_more,
-                        Subtitle = Resources.show_more_subtitle,
-                        Icon = IconHelpers.FromRelativePath("Assets\\EverythingPT.svg"), //new IconInfo("\uF78B"),
-                    });
-                }
+                catch (OperationCanceledException) { break; }
+                catch { IsLoading = false; }
             }
-            IsLoading = false;
-            RaiseItemsChanged(_results.Count);
         }
-        catch { IsLoading = false; }
+        catch (OperationCanceledException) { }
     }
+
+    public void UpdateQuery(string query)
+    {
+        _queryChannel.Writer.TryWrite(query);
+    }
+
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
         _searchText = newSearch;
-        UpdateQuery(newSearch);
+        // Write the latest query into the channel. With DropOldest, this
+        // replaces any pending (not-yet-consumed) query, so only the most
+        // recent keystroke's query will be processed.
+        _queryChannel.Writer.TryWrite($"{newSearch}");
     }
 
     private void OnFiltersChanged(object? sender, IPropChangedEventArgs e)
@@ -126,14 +185,28 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
             return;
 
         pre = _filters.GetPrefix();
-        UpdateQuery(_searchText);
+        _queryChannel.Writer.TryWrite($"{_searchText}");
     }
 
     public void Dispose()
     {
         _filters.PropChanged -= OnFiltersChanged;
-        _cts.Cancel();
+        _queryChannel.Writer.Complete();
+        _disposeCts.Cancel();
+        _disposeCts.Dispose();
+        DisposeResults(_currentResults);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Disposes all Result objects in the list to free their thumbnail streams.
+    /// </summary>
+    private static void DisposeResults(List<Result> results)
+    {
+        if (results == null) return;
+        foreach (var r in results)
+            r.Dispose();
+        results.Clear();
     }
 
     private class ResultsFilters : Filters

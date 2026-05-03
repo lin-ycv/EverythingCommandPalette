@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -31,11 +31,18 @@ namespace EverythingCmdPal.Interop
         private const uint SHGFI_TYPENAME = 0x000000400;
         private const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
 
+        [DllImport("user32.dll")]
+        private static extern bool DestroyIcon(IntPtr hIcon);
+
         public static string GetFileTypeDescription(string path)
         {
             SHFILEINFO shinfo = new SHFILEINFO();
 
             IntPtr result = SHGetFileInfo(path, GetFileAttributes(path), ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES);
+
+            // Defensively free the icon handle if SHGetFileInfo populated it
+            if (shinfo.hIcon != IntPtr.Zero)
+                DestroyIcon(shinfo.hIcon);
 
             if (result != IntPtr.Zero)
             {

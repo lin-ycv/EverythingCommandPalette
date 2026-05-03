@@ -1,7 +1,8 @@
-﻿using EverythingCmdPal.Commands;
+using EverythingCmdPal.Commands;
 using EverythingCmdPal.Properties;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.CommandPalette.Extensions;
+using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -15,7 +16,44 @@ namespace EverythingCmdPal.Helpers
     internal static class Query
     {
         internal static readonly SettingsManager Settings = new();
-        internal static List<Result> Search(string query, CancellationToken token)
+        // Gate all Everything SDK access — the SDK uses global process state
+        // and must be serialized across all callers (ResultsPage + fallback).
+        private static readonly SemaphoreSlim _sdkGate = new(1, 1);
+
+        internal static async Task<List<Result>> Search(string query, CancellationToken token)
+        {
+            await _sdkGate.WaitAsync(token);
+            try
+            {
+                return await SearchCore(query, token);
+            }
+            finally
+            {
+                _sdkGate.Release();
+            }
+        }
+
+        /// <summary>
+        /// Lightweight search for fallback results: limits result count and
+        /// optionally skips thumbnail loading for near-instant returns.
+        /// </summary>
+        internal static async Task<List<Result>> Search(string query, CancellationToken token, int maxResults, bool loadThumbnails)
+        {
+            await _sdkGate.WaitAsync(token);
+            try
+            {
+                return await SearchCore(query, token, maxResults, loadThumbnails);
+            }
+            finally
+            {
+                _sdkGate.Release();
+            }
+        }
+
+        private static Task<List<Result>> SearchCore(string query, CancellationToken token)
+            => SearchCore(query, token, maxResults: -1, loadThumbnails: true);
+
+        private static async Task<List<Result>> SearchCore(string query, CancellationToken token, int maxResults, bool loadThumbnails)
         {
             string orgQuery = query;
             token.ThrowIfCancellationRequested();
@@ -27,9 +65,16 @@ namespace EverythingCmdPal.Helpers
                     if (query.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
                         query = query.Replace(kv.Key, string.Empty, StringComparison.OrdinalIgnoreCase).Trim() + $" {kv.Value}";
 
+            // Temporarily override max if a specific limit was requested
+            if (maxResults > 0)
+                Everything_SetMax((uint)maxResults);
+
             Everything_SetSearchW(query);
             if (!Everything_QueryW(true) || token.IsCancellationRequested)
             {
+                // Restore original max
+                if (maxResults > 0)
+                    Everything_SetMax(Settings.Max);
                 return null;
             }
             token.ThrowIfCancellationRequested();
@@ -53,6 +98,8 @@ namespace EverythingCmdPal.Helpers
                 // Get the result file extension
                 r.Extension = Marshal.PtrToStringUni(Everything_GetResultExtensionW(i));
 
+                r.Preview = Settings.DetailPane;
+
                 r.SizeKB = EPT_GetSizeKB(i);
 
                 r.ModifiedDate = EPT_GetModifiedDateTime(i);
@@ -68,19 +115,23 @@ namespace EverythingCmdPal.Helpers
 
                 // Get icon of the file
                 r.Icon = null;
-                try
+                if (loadThumbnails)
                 {
-                    var stream = ThumbnailHelper.GetThumbnail(r.FullName).Result;
-
-                    if (stream != null)
+                    try
                     {
-                        var data = new IconData(RandomAccessStreamReference.CreateFromStream(stream));
-                        r.Icon = new IconInfo(data, data);
+                        var stream = await ThumbnailHelper.GetThumbnail(r.FullName);
+
+                        if (stream != null)
+                        {
+                            r.ThumbnailStream = stream;
+                            var data = new IconData(RandomAccessStreamReference.CreateFromStream(stream));
+                            r.Icon = new IconInfo(data, data);
+                        }
                     }
-                }
-                catch (Exception e)
-                {
-                    ExtensionHost.LogMessage($"Failed to get the icon: {r.FullName}\n{e.Message}");
+                    catch (Exception e)
+                    {
+                        ExtensionHost.LogMessage($"Failed to get the icon: {r.FullName}\n{e.Message}");
+                    }
                 }
                 r.Icon ??= IconHelpers.FromRelativePath("Assets\\EverythingPt.svg");
 
@@ -88,6 +139,9 @@ namespace EverythingCmdPal.Helpers
 
                 resultsList.Add(r);
             }
+            // Restore original max if it was overridden
+            if (maxResults > 0)
+                Everything_SetMax(Settings.Max);
             token.ThrowIfCancellationRequested();
             return resultsList;
         }

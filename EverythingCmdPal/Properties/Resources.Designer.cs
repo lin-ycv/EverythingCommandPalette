@@ -161,6 +161,24 @@ namespace EverythingCmdPal.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Preview Panel.
+        /// </summary>
+        internal static string detail_pane {
+            get {
+                return ResourceManager.GetString("detail_pane", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preview selection details on the right.
+        /// </summary>
+        internal static string detail_pane_description {
+            get {
+                return ResourceManager.GetString("detail_pane_description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Are you sure Everything is running?.
         /// </summary>
         internal static string everything_not_running {
@@ -207,7 +225,7 @@ namespace EverythingCmdPal.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Custom {0}.
+        ///   Looks up a localized string similar to Custom: {0}.
         /// </summary>
         internal static string filter_custom {
             get {

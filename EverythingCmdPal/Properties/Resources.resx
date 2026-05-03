@@ -285,4 +285,10 @@ Separate program path and argument with comma (,) where $P$ represents the path 
     <value>Folder containing the customized filters.toml.
 If filters.toml does not exist in this folder, the default template will be applied.</value>
   </data>
+  <data name="detail_pane" xml:space="preserve">
+    <value>Preview Panel</value>
+  </data>
+  <data name="detail_pane_description" xml:space="preserve">
+    <value>Preview selection details on the right</value>
+  </data>
 </root>

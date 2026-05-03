@@ -1,8 +1,10 @@
-﻿using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.CommandPalette.Extensions.Toolkit;
+using System;
+using Windows.Storage.Streams;
 
 namespace EverythingCmdPal.Helpers
 {
-    internal class Result
+    internal class Result : IDisposable
     {
         internal string FileName { get; set; }
         internal string FilePath { get; set; }
@@ -13,5 +15,18 @@ namespace EverythingCmdPal.Helpers
         internal bool IsFolder { get; set; }
         internal long SizeKB { get; set; }
         internal string ModifiedDate { get; set; }
+        internal bool Preview { get; set; }
+
+        /// <summary>
+        /// The thumbnail stream backing this result's icon.
+        /// Must be disposed when the result is no longer needed.
+        /// </summary>
+        internal IRandomAccessStream ThumbnailStream { get; set; }
+
+        public void Dispose()
+        {
+            ThumbnailStream?.Dispose();
+            ThumbnailStream = null;
+        }
     }
 }

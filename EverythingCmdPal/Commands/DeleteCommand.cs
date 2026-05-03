@@ -47,7 +47,7 @@ namespace EverythingCmdPal.Commands
             var args = new ConfirmationArgs()
             {
                 Title = Resources.delete_confirm,
-                Description = $"{_fullPath}\n\n{Resources.delete_warn}",
+                Description = $"{_fullPath}",
                 PrimaryCommand = new Delete(_fullPath, _isFolder),
                 IsPrimaryCommandCritical = true,
             };

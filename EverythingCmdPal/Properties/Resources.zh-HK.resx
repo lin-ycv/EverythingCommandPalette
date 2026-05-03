@@ -260,7 +260,7 @@
   </data>
   <data name="open_folder" xml:space="preserve">
     <value>開啟資料夾</value>
-  </data>  
+  </data>
   <data name="filter_all" xml:space="preserve">
     <value>全部</value>
   </data>
@@ -272,5 +272,15 @@
   </data>
   <data name="filter_custom" xml:space="preserve">
     <value>自訂：{0}</value>
+  </data>
+  <data name="filter_path" xml:space="preserve">
+    <value>filters.toml</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="detail_pane" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="detail_pane_description" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
   </data>
 </root>

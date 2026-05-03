@@ -39,6 +39,12 @@ namespace EverythingCmdPal.Helpers
             Resources.prefix_description,
             "");
 
+        private readonly ToggleSetting _detailPane = new(
+            Namespaced(nameof(DetailPane)),
+            Resources.detail_pane,
+            Resources.detail_pane_description,
+            true);
+
         private readonly ToggleSetting _match = new(
             Namespaced(nameof(Match)),
             Resources.match_path,
@@ -90,6 +96,7 @@ namespace EverythingCmdPal.Helpers
         public int SortOption => int.Parse(_sortOption.Value ?? "14", CultureInfo.InvariantCulture);
         public uint Max => uint.TryParse(_max.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint result) ? result : 10; //uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
         public string Prefix => _prefix.Value ?? string.Empty;
+        public bool DetailPane => _detailPane.Value;
         public bool Match => _match.Value;
         public bool Regex => _regex.Value;
         public bool RunAs => _runas.Value;
@@ -115,6 +122,7 @@ namespace EverythingCmdPal.Helpers
             Settings.Add(_sortOption);
             Settings.Add(_max);
             Settings.Add(_prefix);
+            Settings.Add(_detailPane);
             Settings.Add(_match);
             Settings.Add(_regex);
             Settings.Add(_runas);

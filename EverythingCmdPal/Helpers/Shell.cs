@@ -1,15 +1,21 @@
-﻿using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace EverythingCmdPal.Helpers
 {
     internal static class ShellHelper
     {
+        // Allow any process to set the foreground window.
+        // Required because this extension runs as a background COM server
+        // which Windows does not grant foreground activation rights to.
+        private const int ASFW_ANY = -1;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool AllowSetForegroundWindow(int dwProcessId);
+
         /// <summary>
         /// commonly used helper to launch things in shell differently
         /// </summary>
@@ -31,6 +37,8 @@ namespace EverythingCmdPal.Helpers
             };
             try
             {
+                // Grant the launched process permission to steal foreground
+                AllowSetForegroundWindow(ASFW_ANY);
                 Process.Start(startInfo);
                 return true;
             }

@@ -15,8 +15,8 @@ namespace EverythingCmdPal.Commands
 
         public override CommandResult Invoke()
         {
-            //p.SearchText = $"{q}";
-            p.UpdateSearchText("", q);
+            p.SearchText = $"{q}";
+            //p.UpdateSearchText("", q);
             return CommandResult.KeepOpen();
         }
     }

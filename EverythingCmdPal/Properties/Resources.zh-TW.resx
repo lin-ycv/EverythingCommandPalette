@@ -260,7 +260,7 @@
   </data>
   <data name="open_folder" xml:space="preserve">
     <value>開啟資料夾</value>
-  </data>  
+  </data>
   <data name="filter_all" xml:space="preserve">
     <value>全部</value>
   </data>
@@ -272,5 +272,18 @@
   </data>
   <data name="filter_custom" xml:space="preserve">
     <value>自訂：{0}</value>
+  </data>
+  <data name="filter_path" xml:space="preserve">
+    <value>filters.toml</value>
+  </data>
+  <data name="filter_path_description" xml:space="preserve">
+    <value>自訂filters.toml所在的資料夾位置。
+若此資料夾內無filters.toml，將使用預設設定。</value>
+  </data>
+  <data name="detail_pane" xml:space="preserve">
+    <value>預覽欄</value>
+  </data>
+  <data name="detail_pane_description" xml:space="preserve">
+    <value>在右側預覽所選檔案資訊</value>
   </data>
 </root>

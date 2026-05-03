@@ -47,6 +47,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" />
     <PackageReference Include="Shmuelie.WinRTServer" />
     <PackageReference Include="System.Drawing.Common" />
+    <PackageReference Include="System.Threading.Channels" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Interop\NativeMethods.cs">
