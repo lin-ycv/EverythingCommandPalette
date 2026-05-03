@@ -14,6 +14,8 @@ jobs:
     steps:
       
       - name: Config and Push
+        env:
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
         run: |          
           # Get Chocolatey manifests
           git clone --filter=blob:none --no-checkout --depth 1 https://github.com/lin-ycv/chocolatey-pkgs.git
@@ -32,7 +34,7 @@ jobs:
           $NupkgPath = (($UpdateOutput.Result | Where-Object {$_ -like '*.nupkg''*'}) -split "'")[1]
           if ($NupkgPath){
             Write-Output "Newer Version Available: push to Choco"
-            $ApiKey = '${{ secrets.CHOCO_KEY }}'
+            $ApiKey = '${{ secrets.CHOCOLATEY }}'
             $ChocoServer = 'https://push.chocolatey.org/'
             choco push $NupkgPath --source $ChocoServer --key $ApiKey
           }
@@ -45,4 +47,4 @@ jobs:
           cd .\EverythingCommandPalette
           rm .git -Recurse -Force -Confirm:$false
           Get-ChildItem *.* -Recurse | ForEach { (Get-Content $_) | ForEach  {$_ -Replace '_VERSION_', $Latest.Version} | ForEach  {$_ -Replace '_X64_', $Latest.URL64} | ForEach  {$_ -Replace '_HASH64_', $Latest.Checksum64} | ForEach  {$_ -Replace '_ARM64_', $Latest.ARM64} | ForEach  {$_ -Replace '_HASHarm64_', $Latest.Checksuma64} | Set-Content $_ }
-          ..\wingetcreate submit ".\\" -p "New version: EverythingCmdPal version $Latest.Version" -t ${{ secrets.WINGETCREATE_GITHUB }} .
+          ..\wingetcreate submit ".\\" -p "New version: EverythingCmdPal version $Latest.Version" .
