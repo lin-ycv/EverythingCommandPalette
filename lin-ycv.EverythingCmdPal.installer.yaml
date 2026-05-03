@@ -12,7 +12,7 @@ PackageFamilyName: VictorLin.EverythingCP_yazqh14evg2ve
 Dependencies:
   PackageDependencies:
   - PackageIdentifier: Microsoft.PowerToys
-  - PackageIdentifier: Microsoft.WindowsAppRuntime.1.6
+  - PackageIdentifier: Microsoft.WindowsAppRuntime.1.7
 Installers:
 - Architecture: x64
   InstallerUrl: _X64_
