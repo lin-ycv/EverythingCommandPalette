@@ -88,8 +88,8 @@ namespace EverythingCmdPal.Commands
                 return CommandResult.Dismiss();
             else
             {
-                //ExtensionHost.LogMessage($"EPT-CP: {Resources.unknown_error}\n{_fullPath}");
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.unknown_error}\n{_fullPath}", State = MessageState.Error }, StatusContext.Page);
+                //ExtensionHost.LogMessage($"ECP: {Resources.unknown_error}\n{_fullPath}");
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.unknown_error}\n{_fullPath}", State = MessageState.Error }, StatusContext.Page);
                 return CommandResult.KeepOpen();
             }
         }

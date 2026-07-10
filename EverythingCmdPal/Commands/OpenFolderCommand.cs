@@ -27,7 +27,7 @@ namespace EverythingCmdPal.Commands
             }
             else
             {
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_exception}\n{_fullPath}\n{msg}", State = MessageState.Error }, StatusContext.Page);
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_exception}\n{_fullPath}\n{msg}", State = MessageState.Error }, StatusContext.Page);
                 return CommandResult.KeepOpen();
             }
         }

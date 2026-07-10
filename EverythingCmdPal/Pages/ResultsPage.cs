@@ -18,13 +18,15 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
     private List<Result> _currentResults = [];
     private readonly Channel<string> _queryChannel;
     private readonly CancellationTokenSource _disposeCts = new();
+    private readonly CommandHandler _commandHandler = new();
     private readonly ResultsFilters _filters;
     private string _searchText = string.Empty;
     internal string pre = string.Empty;
 
     public ResultsPage()
     {
-        Icon = IconHelpers.FromRelativePath("Assets\\EverythingPT.svg");
+        
+        Icon = Query.DefaultIcon;
         Name = "Everything";
         PlaceholderText = Resources.noquery;
         ShowDetails = true;
@@ -95,7 +97,7 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
                                 Title = r.FileName,
                                 Subtitle = r.FilePath,
                                 Icon = r.Icon,
-                                MoreCommands = new CommandHandler().LoadCommands(r.FullName, r.IsFolder, this),
+                                MoreCommands = _commandHandler.LoadCommands(r.FullName, r.IsFolder, this),
                             }; 
 
                             if (r.Preview)
@@ -110,7 +112,8 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
                                         new DetailsElement() {
                                                 Key = r.FileName,
                                                 Data = new DetailsLink() {
-                                                    Text = r.FilePath
+                                                    Text = r.FilePath,
+                                                    Link = new Uri(r.FilePath.StartsWith(@"\\") ? r.FilePath : "file:///" + r.FilePath.Replace("\\", "/"))
                                                 }
                                             },
                                             new DetailsElement() {
@@ -151,18 +154,24 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
                             {
                                 Title = Resources.show_more,
                                 Subtitle = Resources.show_more_subtitle,
-                                Icon = IconHelpers.FromRelativePath("Assets\\EverythingPT.svg"), //new IconInfo("\uF78B"),
+                                Icon = Query.DefaultIcon, //new IconInfo("\uF78B"),
                             });
                         }
                     }
                     IsLoading = false;
                     RaiseItemsChanged(_results.Count);
+                    GC.Collect(1, GCCollectionMode.Optimized, false);
                 }
                 catch (OperationCanceledException) { break; }
                 catch { IsLoading = false; }
             }
         }
         catch (OperationCanceledException) { }
+    }
+
+    public void NotifySearchTextChanged()
+    {
+        OnPropertyChanged(nameof(SearchText));
     }
 
     public void UpdateQuery(string query)

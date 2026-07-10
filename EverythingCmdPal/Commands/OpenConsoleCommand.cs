@@ -31,7 +31,7 @@ namespace EverythingCmdPal.Commands
             }
             else
             {
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_console_exception}\n{path}\n{msg}", State = MessageState.Error }, StatusContext.Page);
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_console_exception}\n{path}\n{msg}", State = MessageState.Error }, StatusContext.Page);
                 return CommandResult.KeepOpen();
             }
         }

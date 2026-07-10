@@ -4,6 +4,9 @@ using EverythingCmdPal.Properties;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.CommandPalette.Extensions;
 using System.IO;
+using System;
+using Windows.AI.Actions.Hosting;
+using Windows.AI.Actions;
 
 namespace EverythingCmdPal.Commands
 {
@@ -31,7 +34,7 @@ namespace EverythingCmdPal.Commands
             }
             else
             {
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_exception}\n{_fullPath}\n{msg}", State = MessageState.Error }, StatusContext.Page);
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_exception}\n{_fullPath}\n{msg}", State = MessageState.Error }, StatusContext.Page);
                 return CommandResult.KeepOpen();
             }
         }

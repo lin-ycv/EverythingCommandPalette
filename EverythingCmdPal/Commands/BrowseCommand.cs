@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace EverythingCmdPal.Commands
 {
-    internal sealed partial class BrowseCommand(string q, DynamicListPage p) : InvokableCommand
+    internal sealed partial class BrowseCommand(string q, ResultsPage p) : InvokableCommand
     {
         public override string Name => Resources.browse;
         public override IconInfo Icon => new("\uF89A");
@@ -16,7 +16,8 @@ namespace EverythingCmdPal.Commands
         public override CommandResult Invoke()
         {
             p.SearchText = $"{q}";
-            //p.UpdateSearchText("", q);
+            //p.UpdateSearchText(p.SearchText, q);
+            p.NotifySearchTextChanged();
             return CommandResult.KeepOpen();
         }
     }

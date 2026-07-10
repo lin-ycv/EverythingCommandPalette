@@ -15,6 +15,7 @@ namespace EverythingCmdPal.Helpers
 {
     internal static class Query
     {
+        internal static readonly IconInfo DefaultIcon = IconHelpers.FromRelativePaths("Assets\\EverythingPT_theme-light.svg", "Assets\\EverythingPT_theme-dark.svg");
         internal static readonly SettingsManager Settings = new();
         // Gate all Everything SDK access — the SDK uses global process state
         // and must be serialized across all callers (ResultsPage + fallback).
@@ -79,7 +80,7 @@ namespace EverythingCmdPal.Helpers
             }
             token.ThrowIfCancellationRequested();
 
-            var resultCount = Everything_GetNumResults();
+            var resultCount = Math.Min(Everything_GetNumResults(), Settings.Max);
 
             // Create a List to store ListItems
             var resultsList = new List<Result>();
@@ -133,7 +134,7 @@ namespace EverythingCmdPal.Helpers
                         ExtensionHost.LogMessage($"Failed to get the icon: {r.FullName}\n{e.Message}");
                     }
                 }
-                r.Icon ??= IconHelpers.FromRelativePath("Assets\\EverythingPt.svg");
+                r.Icon ??= DefaultIcon;
 
                 r.FileType = Interop.Shell32Methods.GetFileTypeDescription(r.FullName);
 
@@ -175,7 +176,7 @@ namespace EverythingCmdPal.Helpers
                     Title = message,
                     Subtitle = $"0x{lastError:X8}",
                 });
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = Resources.everything_not_running, State = MessageState.Error }, StatusContext.Page);
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = Resources.everything_not_running, State = MessageState.Error }, StatusContext.Page);
             }
             else
             {

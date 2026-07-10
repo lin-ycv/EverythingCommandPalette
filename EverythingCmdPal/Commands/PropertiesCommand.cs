@@ -57,8 +57,8 @@ namespace EverythingCmdPal.Commands
             }
             catch (Exception e)
             {
-                //ExtensionHost.LogMessage($"EPT-CP: {Resources.unknown_error}\n{e.Message}");
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{e.Message}", State = MessageState.Error }, StatusContext.Page);
+                //ExtensionHost.LogMessage($"ECP: {Resources.unknown_error}\n{e.Message}");
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{e.Message}", State = MessageState.Error }, StatusContext.Page);
                 return CommandResult.KeepOpen();
             }
             return CommandResult.Dismiss();

@@ -27,6 +27,10 @@ namespace EverythingCmdPal.Helpers
         {
             ThumbnailStream?.Dispose();
             ThumbnailStream = null;
+            Icon = null;
+            FileName = null;
+            FilePath = null;
+            FullName = null;
         }
     }
 }

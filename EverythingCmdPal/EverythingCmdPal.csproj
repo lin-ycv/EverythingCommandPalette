@@ -4,10 +4,10 @@
     <RootNamespace>EverythingCmdPal</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <WindowsSdkPackageVersion>10.0.26100.38</WindowsSdkPackageVersion>
-    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <WindowsSdkPackageVersion>10.0.26100.68-preview</WindowsSdkPackageVersion>
+	<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17200.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.17200.0</SupportedOSPlatformVersion>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
@@ -16,13 +16,34 @@
 	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	  <GenerateAppxPackageOnBuild Condition="'$(Configuration)'=='Release'">true</GenerateAppxPackageOnBuild>
-	  <GenerateSatelliteAssembliesForCore Condition="'$(Configuration)'=='Release'">true</GenerateSatelliteAssembliesForCore>
+	  <GenerateSatelliteAssembliesForCore>true</GenerateSatelliteAssembliesForCore>
   </PropertyGroup>
 	<PropertyGroup Condition="'$(Platform)' == 'ARM64'">
 		<DefineConstants>ARM64</DefineConstants>
 	</PropertyGroup>
   <ItemGroup>
-    <Content Remove="Assets\logo.ai" />
+	  <Content Remove="Assets\logo.ai" />
+	  <Content Update="Assets\filters.toml">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Assets\EverythingPT_theme-dark.svg">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Assets\EverythingPT_theme-light.svg">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Assets\LockScreenLogo.scale-200_theme-light.png" />
+	  <Content Include="Assets\LockScreenLogo.scale-200_theme-dark.png" />
+	  <Content Include="Assets\SplashScreen.scale-200_theme-light.png" />
+	  <Content Include="Assets\SplashScreen.scale-200_theme-dark.png" />
+	  <Content Include="Assets\Square150x150Logo.scale-200_theme-light.png" />
+	  <Content Include="Assets\Square150x150Logo.scale-200_theme-dark.png" />
+	  <Content Include="Assets\Square44x44Logo.scale-200_theme-light.png" />
+	  <Content Include="Assets\Square44x44Logo.scale-200_theme-dark.png" />
+	  <Content Include="Assets\StoreLogo.scale-200_theme-light.png" />
+	  <Content Include="Assets\StoreLogo.scale-200_theme-dark.png" />
+	  <Content Include="Assets\Wide310x150Logo.scale-200_theme-light.png" />
+	  <Content Include="Assets\Wide310x150Logo.scale-200_theme-dark.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,13 +65,19 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Windows.CsWinRT" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <!-- Needed to enable building an MSIX package -->
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Shmuelie.WinRTServer" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="System.Threading.Channels" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Interop\NativeMethods.cs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Compile>
+    <Compile Update="Pages\ResultsPage.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
     <Compile Update="Properties\Resources.Designer.cs">
@@ -58,14 +85,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Update="Assets\EverythingPT.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Update="Assets\filters.toml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Properties\Resources.resx">
@@ -79,6 +98,9 @@
     </None>
     <None Update="Everything2_ARM64.dll">
 		<CopyToOutputDirectory Condition="'$(Platform)' == 'ARM64'">PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Public\.gitkeep">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Win32\Helper.deps.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -107,14 +129,17 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <PublishSingleFile>true</PublishSingleFile>
     <IsAotCompatible>true</IsAotCompatible>
+
     <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
     <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
     <!-- Suppress DynamicallyAccessedMemberTypes.PublicParameterlessConstructor in fallback code path of Windows SDK projection -->
-    <WarningsNotAsErrors>IL2081;IL2104</WarningsNotAsErrors>
+    <WarningsNotAsErrors>IL2081;$(WarningsNotAsErrors)</WarningsNotAsErrors>
 
-    <PublishTrimmed>true</PublishTrimmed>
-    <PublishSingleFile>true</PublishSingleFile>
+    <!-- When publishing trimmed, make sure to treat trimming warnings as build errors -->
+    <ILLinkTreatWarningsAsErrors>true</ILLinkTreatWarningsAsErrors>
+
     <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
     <AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>
     <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
@@ -125,21 +150,26 @@
     <AppxBundlePlatforms>x64|arm64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
+    <DefaultLanguage>en-us</DefaultLanguage>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <DebugType>portable</DebugType>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <!-- In Debug builds, trimming is disabled by default, but all the trim &
+         AOT warnings are enabled. This gives debug builds a tighter inner loop,
+         while at least warning about future trim violations -->
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <DebugType>portable</DebugType>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'!='Debug'">
+    <!-- In Release builds, trimming is enabled by default.
+         feel free to disable this if needed -->
+    <PublishTrimmed>true</PublishTrimmed>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DebugType>none</DebugType>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <DebugType>none</DebugType>
+    <!-- In release, also ignore the aforementioned ILLink warning -->
+    <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>
   </PropertyGroup>
 </Project>

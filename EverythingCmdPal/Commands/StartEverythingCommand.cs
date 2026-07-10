@@ -23,7 +23,9 @@ namespace EverythingCmdPal.Commands
                 verb = "open";
             }
             if (!ShellHelper.OpenInShell(_path, ref msg, null, null, verb))
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.unknown_error}\n{msg}", State = MessageState.Error }, StatusContext.Page);
+            {
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.unknown_error}\n{msg}", State = MessageState.Error }, StatusContext.Page);
+            }
 
             return CommandResult.GoHome();
         }

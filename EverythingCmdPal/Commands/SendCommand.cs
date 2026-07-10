@@ -29,7 +29,7 @@ namespace EverythingCmdPal.Commands
             }
             else
             {
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.sendto_failed}\n\"{_exe}\" \"{_arg}\"\n{msg}", State = MessageState.Error }, StatusContext.Page);
+                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.sendto_failed}\n\"{_exe}\" \"{_arg}\"\n{msg}", State = MessageState.Error }, StatusContext.Page);
                 return CommandResult.KeepOpen();
             }
         }
