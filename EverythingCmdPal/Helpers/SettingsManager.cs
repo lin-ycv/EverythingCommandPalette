@@ -69,6 +69,12 @@ namespace EverythingCmdPal.Helpers
             Resources.show_more_description,
             true);
 
+        private readonly ToggleSetting _enableDelete = new(
+            Namespaced(nameof(EnableDelete)),
+            Resources.enable_delete,
+            Resources.enable_delete_description,
+            true);
+
         private readonly TextSetting _exe = new(
             Namespaced(nameof(Exe)),
             Resources.exe,
@@ -101,6 +107,7 @@ namespace EverythingCmdPal.Helpers
         public bool Regex => _regex.Value;
         public bool RunAs => _runas.Value;
         public bool ShowMore => _showMore.Value;
+        public bool EnableDelete => _enableDelete.Value;
         public string Exe => _exe.Value ?? string.Empty;
         public bool EnableSend => _bSendto.Value;
         public string Sendto => _sendto.Value ?? string.Empty;
@@ -127,6 +134,7 @@ namespace EverythingCmdPal.Helpers
             Settings.Add(_regex);
             Settings.Add(_runas);
             Settings.Add(_showMore);
+            Settings.Add(_enableDelete);
             Settings.Add(_exe);
             Settings.Add(_bSendto);
             Settings.Add(_sendto);
