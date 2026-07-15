@@ -33,7 +33,11 @@ namespace EverythingCmdPal.Commands
                 {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, false, false, (int)VirtualKey.N, 0),
                 });
-
+            if (Query.Settings.EnableDelete)
+                items.Add(new CommandContextItem(new DeleteCommand(fullPath, isFolder)) 
+                {
+                    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.Delete, 0),
+                });
             if (CanFileBeRunAsAdmin(fullPath))
             {
                 items.Add(new CommandContextItem(new RunAdminCommand(fullPath, isFolder))
@@ -65,9 +69,6 @@ namespace EverythingCmdPal.Commands
                 //new CommandContextItem(new ContextMenuCommand(fullPath, isFolder)) {
                 //    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.M, 0)
                 //},
-                new CommandContextItem(new DeleteCommand(fullPath, isFolder)) {
-                    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.Delete, 0)
-                },
                 new CommandContextItem(new PropertiesCommand(fullPath)) {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.I, 0)
                 },

@@ -59,6 +59,16 @@ namespace EverythingCmdPal.Properties {
                 resourceCulture = value;
             }
         }
+        internal static string enable_delete {
+            get {
+                return ResourceManager.GetString("enable_delete", resourceCulture);
+            }
+        }
+        internal static string enable_delete_description {
+            get {
+                return ResourceManager.GetString("enable_delete_description", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Browse.
