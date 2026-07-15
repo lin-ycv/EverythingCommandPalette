@@ -64,8 +64,7 @@ namespace EverythingCmdPal.Commands
                 //new CommandContextItem(new ContextMenuCommand(fullPath, isFolder)) {
                 //    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.M, 0)
                 //},
-                new CommandContextItem(new DeleteCommand(fullPath, isFolder)) 
-                {
+                new CommandContextItem(new DeleteCommand(fullPath, isFolder)) {
                     RequestedShortcut = Query.Settings.EnableDelete
                         ? KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.Delete, 0)
                         : default,
