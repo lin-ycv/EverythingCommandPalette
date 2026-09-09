@@ -98,7 +98,8 @@ internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHand
                                 Subtitle = r.FilePath,
                                 Icon = r.Icon,
                                 MoreCommands = _commandHandler.LoadCommands(r.FullName, r.IsFolder, this),
-                            }; 
+                                DataPackage = DataPackageHelper.CreateDataPackageForPath(r),
+                            };
 
                             if (r.Preview)
                             {
