@@ -1,16 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EverythingCmdPal.Interop
 {
-    internal class Shell32Methods
+    internal static class Shell32Methods
     {
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         public struct SHFILEINFO
         {
             public IntPtr hIcon;
@@ -22,10 +18,7 @@ namespace EverythingCmdPal.Interop
             public string szTypeName;
         }
 
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern uint GetFileAttributes(string lpFileName);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        [DllImport("shell32.dll", EntryPoint = "SHGetFileInfoW", CharSet = CharSet.Unicode, ExactSpelling = true)]
         public static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbFileInfo, uint uFlags);
 
         private const uint SHGFI_TYPENAME = 0x000000400;
@@ -34,11 +27,14 @@ namespace EverythingCmdPal.Interop
         [DllImport("user32.dll")]
         private static extern bool DestroyIcon(IntPtr hIcon);
 
-        public static string GetFileTypeDescription(string path)
+        public static string? GetFileTypeDescription(string path, bool isFolder)
         {
             SHFILEINFO shinfo = new SHFILEINFO();
 
-            IntPtr result = SHGetFileInfo(path, GetFileAttributes(path), ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES);
+            // The query already tells us whether this is a folder. With
+            // USEFILEATTRIBUTES there is no need to hit the filesystem again.
+            uint attributes = isFolder ? 0x10u : 0x80u;
+            IntPtr result = SHGetFileInfo(path, attributes, ref shinfo, (uint)Marshal.SizeOf(shinfo), SHGFI_TYPENAME | SHGFI_USEFILEATTRIBUTES);
 
             // Defensively free the icon handle if SHGetFileInfo populated it
             if (shinfo.hIcon != IntPtr.Zero)

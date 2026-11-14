@@ -1,289 +1,344 @@
+using EverythingCmdPal.Commands;
+using EverythingCmdPal.Helpers;
 using EverythingCmdPal.Properties;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System;
-using EverythingCmdPal.Helpers;
-using EverythingCmdPal.Commands;
+using System.Linq;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace EverythingCmdPal;
 
-internal partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHandler
+internal sealed partial class ResultsPage : DynamicListPage, IDisposable, IFallbackHandler
 {
-    private readonly List<IListItem> _results = [];
-    private List<Result> _currentResults = [];
-    private readonly Channel<string> _queryChannel;
-    private readonly CancellationTokenSource _disposeCts = new();
+    private sealed record SearchRequest(string Query, string FilterPrefix, SearchSettings Settings);
+    private sealed record ResultBatch(IListItem[] Items, List<Result>? Results, SearchSettings Settings, string Query,
+        string? WarningMessage = null);
+    private readonly SettingsManager _settings;
+    private readonly Func<string, SearchSettings, CancellationToken, Task<Query.SearchResponse>> _search;
+    internal Task Completion => _worker.Completion;
+    private readonly object _stateLock = new();
     private readonly CommandHandler _commandHandler = new();
     private readonly ResultsFilters _filters;
+    private readonly LatestQueryWorker<SearchRequest, ResultBatch> _worker;
+    private ResultBatch _batch;
     private string _searchText = string.Empty;
-    internal string pre = string.Empty;
+    private bool _staged;
+    private bool _hasQuery;
+    private volatile bool _disposed;
 
-    public ResultsPage()
+    public ResultsPage() : this(Query.Settings, (query, settings, token) => Query.Search(query, settings, token), Query.DefaultIcon)
     {
-        
-        Icon = Query.DefaultIcon;
+    }
+
+    internal ResultsPage(SettingsManager settings,
+        Func<string, SearchSettings, CancellationToken, Task<Query.SearchResponse>> search, IconInfo icon)
+    {
+        _settings = settings;
+        _search = search;
+        Icon = icon;
         Name = "Everything";
         PlaceholderText = Resources.noquery;
-        ShowDetails = true;
-        _filters = new ResultsFilters();
+        ShowDetails = _settings.Current.DetailPane;
+        _batch = new([], null, _settings.Current, string.Empty);
+        _filters = new ResultsFilters(_settings.Current.Filters);
         _filters.PropChanged += OnFiltersChanged;
         Filters = _filters;
-
-        // Bounded channel with capacity 1: new queries overwrite any pending query.
-        // This naturally debounces rapid keystrokes — only the latest query matters.
-        _queryChannel = Channel.CreateBounded<string>(new BoundedChannelOptions(1)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true,
-            SingleWriter = false,
-        });
-
-        // Start the single consumer that serializes all Everything SDK access
-        _ = Task.Run(ProcessQueriesAsync);
+        _worker = new(FetchAsync, batch => Volatile.Write(ref _batch, batch),
+            batch => Query.DisposeResults(batch.Results), OnBatchReady, OnSearchError);
+        _settings.Changed += OnSettingsChanged;
     }
 
-    public override IListItem[] GetItems() => [.. _results];
-
-    /// <summary>
-    /// Single consumer loop: reads queries from the channel and runs searches serially.
-    /// Because there is only one reader, the Everything SDK's global state is never
-    /// accessed concurrently. After the blocking Everything_QueryW returns, we check
-    /// whether a newer query arrived while we were blocked — if so, we discard the
-    /// stale results and loop to process the newer query immediately.
-    /// </summary>
-    private async Task ProcessQueriesAsync()
+    public override IListItem[] GetItems()
     {
-        var reader = _queryChannel.Reader;
-        try
+        lock (_stateLock)
         {
-            await foreach (string query in reader.ReadAllAsync(_disposeCts.Token))
+            if (_staged && !_disposed)
             {
-                IsLoading = true;
-                try
-                {
-                    DisposeResults(_currentResults);
-                    _results.Clear();
-                    string q = $"{pre}{query}";
-                    List<Result> results = await Query.Search(q, _disposeCts.Token);
-
-                    // After the search completes, check if a newer query arrived
-                    // while we were blocked in Everything_QueryW. If so, discard
-                    // these stale results and let the loop pick up the new query.
-                    if (reader.TryRead(out string newerQuery))
-                    {
-                        // Dispose the stale results we just fetched
-                        DisposeResults(results);
-                        // Re-enqueue the newer query so ReadAllAsync picks it up
-                        _queryChannel.Writer.TryWrite(newerQuery);
-                        IsLoading = false;
-                        continue;
-                    }
-
-                    _currentResults = results ?? [];
-
-                    if (results == null)
-                        _results.AddRange(Query.EverythingFailed());
-                    else
-                    {
-                        foreach (Result r in results)
-                        {
-                            ListItem resultsItem = new(new OpenCommand(r.FullName, r.IsFolder))
-                            {
-                                Title = r.FileName,
-                                Subtitle = r.FilePath,
-                                Icon = r.Icon,
-                                MoreCommands = _commandHandler.LoadCommands(r.FullName, r.IsFolder, this),
-                                DataPackage = DataPackageHelper.CreateDataPackageForPath(r),
-                            };
-
-                            if (r.Preview)
-                            {
-                                resultsItem.Details = new Details()
-                                {
-                                    //// Title and Body text is large and unselectable, but displayed right under HeroImage
-                                    //Title = fileName,
-                                    //Body = fileName,                    
-                                    HeroImage = r.Icon,
-                                    Metadata = [
-                                        new DetailsElement() {
-                                                Key = r.FileName,
-                                                Data = new DetailsLink() {
-                                                    Text = r.FilePath,
-                                                    Link = new Uri(r.FilePath.StartsWith(@"\\") ? r.FilePath : "file:///" + r.FilePath.Replace("\\", "/"))
-                                                }
-                                            },
-                                            new DetailsElement() {
-                                                Data = new DetailsSeparator()
-                                            },
-                                            new DetailsElement(){
-                                                Key = "Size",
-                                                Data = new DetailsLink(){
-                                                    Text = r.SizeKB.ToString("N0", CultureInfo.InvariantCulture)+" KB"
-                                                }
-                                            },
-                                            new DetailsElement() {
-                                                Key = "Type",
-                                                Data = new DetailsTags(){
-                                                    Tags=[
-                                                        new Tag(r.FileType ?? r.Extension ?? string.Empty){
-                                                            Foreground = ColorHelpers.FromRgb(51,51,51),
-                                                            Background=ColorHelpers.FromRgb(224,204,179)},
-                                                    ]
-                                                }
-                                            },
-                                            new DetailsElement(){
-                                                Key = "Modified Date",
-                                                Data = new DetailsLink(){
-                                                    Text = r.ModifiedDate
-                                                }
-                                            }
-                                     ],
-                                };
-                            }
-
-                            _results.Add(resultsItem);
-                            
-                        }
-                        if (_results.Count != 0 && Query.Settings.ShowMore)
-                        {
-                            _results.Add(new ListItem(new ShowMoreCommand(q, Query.Settings.Exe))
-                            {
-                                Title = Resources.show_more,
-                                Subtitle = Resources.show_more_subtitle,
-                                Icon = Query.DefaultIcon, //new IconInfo("\uF78B"),
-                            });
-                        }
-                    }
-                    IsLoading = false;
-                    RaiseItemsChanged(_results.Count);
-                    GC.Collect(1, GCCollectionMode.Optimized, false);
-                }
-                catch (OperationCanceledException) { break; }
-                catch { IsLoading = false; }
+                _staged = false;
+                QueueSearch();
             }
         }
-        catch (OperationCanceledException) { }
+        // Publish complete arrays; never enumerate a list modified by a worker.
+        return [.. Volatile.Read(ref _batch).Items];
     }
 
-    public void NotifySearchTextChanged()
+    // Preparing a fallback entry must not start another full search on the home
+    // page. GetItems starts the search only when the results are requested.
+    internal void StageQuery(string query)
     {
-        OnPropertyChanged(nameof(SearchText));
+        lock (_stateLock)
+        {
+            // A settings-triggered fallback re-probe can return the same text.
+            // Keep in-flight work valid, but still refresh on the next GetItems
+            // so returning to the same query does not reuse old file results.
+            if (query == _searchText)
+            {
+                _staged = true;
+                return;
+            }
+            _searchText = query;
+            _staged = true;
+            ClearResults();
+        }
+        SetSearchNoUpdate(query);
     }
 
-    public void UpdateQuery(string query)
+    private async Task<ResultBatch> FetchAsync(SearchRequest request, CancellationToken token)
     {
-        _queryChannel.Writer.TryWrite(query);
+        IsLoading = true;
+        try
+        {
+            string query = request.FilterPrefix + request.Query;
+            var response = await _search(query, request.Settings, token);
+            try
+            {
+                return BuildBatch(response.Results, request.Settings, query, response.ErrorCode,
+                    response.ErrorMessage, response.WarningMessage);
+            }
+            catch
+            {
+                Query.DisposeResults(response.Results);
+                throw;
+            }
+        }
+        finally { IsLoading = false; }
     }
+
+    private ResultBatch BuildBatch(List<Result>? results, SearchSettings settings, string query, uint errorCode = 0,
+        string? errorMessage = null, string? warningMessage = null)
+    {
+        var items = results is null
+            ? new List<IListItem>(Query.EverythingFailed(errorCode, errorMessage))
+            : results.Select(result => (IListItem)CreateItem(result, settings)).ToList();
+        if (results is not null && warningMessage is not null)
+            items.Add(new ListItem(new NoOpCommand())
+            {
+                Title = "Slow sort enabled",
+                Subtitle = warningMessage,
+                Icon = new IconInfo("\uE7BA"),
+            });
+        if (results is { Count: > 0 } && settings.ShowMore)
+            items.Add(new ListItem(new ShowMoreCommand(query, settings.Exe))
+            {
+                Title = Resources.show_more,
+                Subtitle = Resources.show_more_subtitle,
+                Icon = Icon,
+            });
+        return new([.. items], results, settings, query, warningMessage);
+    }
+
+    private void OnBatchReady()
+    {
+        RefreshPresentation();
+        NotifyResultsChanged();
+    }
+
+    private void RefreshPresentation()
+    {
+        // Build off-lock: constructing rows/raising host notifications while
+        // holding the query-worker lock risks COM re-entrancy deadlocks.
+        while (!_disposed)
+        {
+            var old = Volatile.Read(ref _batch);
+            var current = _settings.Current;
+            if (ReferenceEquals(old.Settings, current) || current.RequiresNewSearchComparedTo(old.Settings)) return;
+            var next = old.Results is null ? old with { Settings = current }
+                : BuildBatch(old.Results, current, old.Query, warningMessage: old.WarningMessage);
+            if (ReferenceEquals(Interlocked.CompareExchange(ref _batch, next, old), old)) return;
+        }
+    }
+
+    private ListItem CreateItem(Result r, SearchSettings settings)
+    {
+        var resultsItem = new ListItem(new OpenCommand(r.FullName, r.IsFolder))
+        {
+            Title = r.FileName,
+            Subtitle = r.FilePath,
+            Icon = r.Icon,
+            MoreCommands = _commandHandler.LoadCommands(r.FullName, r.IsFolder, this, settings),
+            DataPackage = DataPackageHelper.CreateDataPackageForPath(r),
+        };
+        if (r.Preview)
+        {
+            resultsItem.Details = new Details()
+            {
+                //// Title and Body text is large and unselectable, but displayed right under HeroImage
+                //Title = fileName,
+                //Body = fileName,
+                HeroImage = r.Icon,
+                Metadata = [
+                    new DetailsElement() {
+                            Key = r.FileName,
+                            Data = new DetailsLink() {
+                                Text = r.FilePath,
+                                Link = new Uri(r.FilePath.StartsWith(@"\\", StringComparison.Ordinal) ? r.FilePath : "file:///" + r.FilePath.Replace("\\", "/"))
+                            }
+                        },
+                        new DetailsElement() {
+                            Data = new DetailsSeparator()
+                        },
+                        new DetailsElement(){
+                            Key = "Size",
+                            Data = new DetailsLink(){
+                                Text = r.SizeKB.ToString("N0", CultureInfo.InvariantCulture)+" KB"
+                            }
+                        },
+                        new DetailsElement() {
+                            Key = "Type",
+                            Data = new DetailsTags(){
+                                Tags=[
+                                    new Tag(string.IsNullOrEmpty(r.FileType) ? r.Extension : r.FileType){
+                                        Foreground = ColorHelpers.FromRgb(51,51,51),
+                                        Background=ColorHelpers.FromRgb(224,204,179)},
+                                ]
+                            }
+                        },
+                        new DetailsElement(){
+                            Key = "Modified Date",
+                            Data = new DetailsLink(){
+                                Text = r.ModifiedDate
+                            }
+                        }
+                 ],
+            };
+        }
+        return resultsItem;
+    }
+
+    private void NotifyResultsChanged()
+    {
+        var batch = Volatile.Read(ref _batch);
+        ShowDetails = batch.Settings.DetailPane;
+        RaiseItemsChanged(batch.Items.Length);
+        // Retired published icon streams follow their WinRT reference lifetime.
+        // Explicitly closing them here can break a host still fetching an icon.
+    }
+
+    private void OnSearchError(Exception exception)
+    {
+        ExtensionHost.LogMessage($"ECP: Search failed: {exception}");
+        ExtensionHost.ShowStatus(new StatusMessage
+        {
+            Message = $"{Resources.unknown_error}: {exception.Message}",
+            State = MessageState.Error,
+        }, StatusContext.Page);
+    }
+
+    public void NotifySearchTextChanged() => OnPropertyChanged(nameof(SearchText));
+
+    public void UpdateQuery(string query) => UpdateSearchText(_searchText, query);
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
-        _searchText = newSearch;
-        // Write the latest query into the channel. With DropOldest, this
-        // replaces any pending (not-yet-consumed) query, so only the most
-        // recent keystroke's query will be processed.
-        _queryChannel.Writer.TryWrite($"{newSearch}");
+        lock (_stateLock)
+        {
+            _searchText = newSearch;
+            _staged = false;
+            QueueSearch();
+        }
     }
 
-    private void OnFiltersChanged(object? sender, IPropChangedEventArgs e)
+    private void QueueSearch()
     {
-        if (e.PropertyName != nameof(Filters.CurrentFilterId))
-            return;
+        if (_disposed) return;
+        _hasQuery = true;
+        _worker.Submit(new(_searchText, _filters.GetPrefix(), _settings.Current));
+    }
 
-        pre = _filters.GetPrefix();
-        _queryChannel.Writer.TryWrite($"{_searchText}");
+    private void OnSettingsChanged(object? sender, EventArgs args)
+    {
+        var current = _settings.Current;
+        if (!current.RequiresNewSearchComparedTo(Volatile.Read(ref _batch).Settings))
+        {
+            RefreshPresentation();
+            NotifyResultsChanged();
+            return;
+        }
+        _filters.Refresh(current.Filters);
+        lock (_stateLock)
+        {
+            if (_disposed) return;
+            ClearResults();
+            if (_hasQuery && !_staged) QueueSearch();
+        }
+        OnPropertyChanged(nameof(Filters));
+        NotifyResultsChanged();
+    }
+
+    private void ClearResults() => _worker.Invalidate(() =>
+        Volatile.Write(ref _batch, new ResultBatch([], null, _settings.Current, string.Empty)));
+
+    private void OnFiltersChanged(object? sender, IPropChangedEventArgs args)
+    {
+        if (args.PropertyName != nameof(Filters.CurrentFilterId)) return;
+        lock (_stateLock) QueueSearch();
     }
 
     public void Dispose()
     {
-        _filters.PropChanged -= OnFiltersChanged;
-        _queryChannel.Writer.Complete();
-        _disposeCts.Cancel();
-        _disposeCts.Dispose();
-        DisposeResults(_currentResults);
+        lock (_stateLock)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _settings.Changed -= OnSettingsChanged;
+            _filters.PropChanged -= OnFiltersChanged;
+            _worker.Dispose();
+        }
+        _ = _worker.Completion.ContinueWith(_ => Query.DisposeResults(_batch.Results), TaskScheduler.Default);
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Disposes all Result objects in the list to free their thumbnail streams.
-    /// </summary>
-    private static void DisposeResults(List<Result> results)
-    {
-        if (results == null) return;
-        foreach (var r in results)
-            r.Dispose();
-        results.Clear();
-    }
-
-    private class ResultsFilters : Filters
+    private sealed partial class ResultsFilters : Filters
     {
         private const string AllFilterId = "all";
         private const string FolderFilterId = "folder";
         private const string FileFilterId = "file";
+        private volatile (string Id, string Name, string Prefix)[] _customFilters = [];
 
-        private readonly List<(string Id, string Name, string Prefix)> _customFilters = [];
-
-        internal ResultsFilters()
+        internal ResultsFilters(IReadOnlyDictionary<string, string> filters)
         {
             CurrentFilterId = AllFilterId;
-
-            foreach (string key in Query.Settings.Filters.Keys)
-            {
-                string normalized = key.Trim();
-                if (normalized.Length == 0)
-                    continue;
-
-                string keyWithoutSuffix = normalized.EndsWith(':') ? normalized[..^1] : normalized;
-                string prefix = normalized.EndsWith(':') ? normalized : $"{normalized}:";
-                _customFilters.Add(($"custom:{keyWithoutSuffix}", string.Format(Resources.filter_custom, keyWithoutSuffix), prefix));
-            }
+            Refresh(filters);
         }
 
-        internal string GetPrefix()
+        internal void Refresh(IReadOnlyDictionary<string, string> filters)
         {
-            return CurrentFilterId switch
+            _customFilters = filters.Keys.Where(key => !string.IsNullOrWhiteSpace(key)).Select(key =>
             {
-                AllFilterId => string.Empty,
-                FolderFilterId => "folder:",
-                FileFilterId => "file:",
-                _ => GetCustomPrefix(CurrentFilterId),
-            };
+                string name = key.Trim().TrimEnd(':');
+                return ($"custom:{name}", string.Format(CultureInfo.CurrentCulture, Resources.filter_custom, name), name + ":");
+            }).ToArray();
+            if (CurrentFilterId is not (AllFilterId or FolderFilterId or FileFilterId)
+                && !_customFilters.Any(filter => filter.Id == CurrentFilterId))
+                CurrentFilterId = AllFilterId;
         }
+
+        internal string GetPrefix() => CurrentFilterId switch
+        {
+            FolderFilterId => "folder:",
+            FileFilterId => "file:",
+            _ => _customFilters.FirstOrDefault(filter => filter.Id == CurrentFilterId).Prefix ?? string.Empty,
+        };
 
         public override IFilterItem[] GetFilters()
         {
-            List<IFilterItem> filters =
-            [
-                new Filter() { Id = AllFilterId, Name = Resources.filter_all, Icon = new IconInfo("\uE71C") },
-                new Filter() { Id = FolderFilterId, Name = Resources.filter_folders, Icon = new IconInfo("\uE8B7") },
-                new Filter() { Id = FileFilterId, Name = Resources.filter_files, Icon = new IconInfo("\uE8A5") },
-            ];
-
-            if (_customFilters.Count > 0)
+            var filters = new List<IFilterItem>
+            {
+                new Filter { Id = AllFilterId, Name = Resources.filter_all, Icon = new IconInfo("\uE71C") },
+                new Filter { Id = FolderFilterId, Name = Resources.filter_folders, Icon = new IconInfo("\uE8B7") },
+                new Filter { Id = FileFilterId, Name = Resources.filter_files, Icon = new IconInfo("\uE8A5") },
+            };
+            if (_customFilters.Length > 0)
             {
                 filters.Add(new Separator());
                 foreach (var filter in _customFilters)
-                {
-                    filters.Add(new Filter() { Id = filter.Id, Name = filter.Name, Icon = new IconInfo("\uE71C") });
-                }
+                    filters.Add(new Filter { Id = filter.Id, Name = filter.Name, Icon = new IconInfo("\uE71C") });
             }
-
             return [.. filters];
-        }
-
-        private string GetCustomPrefix(string filterId)
-        {
-            foreach (var filter in _customFilters)
-            {
-                if (filter.Id == filterId)
-                    return filter.Prefix;
-            }
-
-            return string.Empty;
         }
     }
 }

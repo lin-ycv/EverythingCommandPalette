@@ -1,35 +1,11 @@
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace EverythingCmdPal.Helpers
 {
     internal static class ShellHelper
     {
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
-
-        [DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-        [DllImport("kernel32.dll")]
-        private static extern uint GetCurrentThreadId();
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool AllowSetForegroundWindow(int dwProcessId);
-
-        private const int ASFW_ANY = -1;
-
         /// <summary>
         /// commonly used helper to launch things in shell differently
         /// </summary>
@@ -51,45 +27,11 @@ namespace EverythingCmdPal.Helpers
             };
             try
             {
-                // Capture foreground window info BEFORE launching
-                IntPtr foregroundHwnd = GetForegroundWindow();
-                uint foregroundThread = GetWindowThreadProcessId(foregroundHwnd, out _);
-                uint currentThread = GetCurrentThreadId();
-
-                // Attach our thread to the foreground thread's input queue
-                // so Windows treats us as if we are the foreground process.
-                bool attached = false;
-                if (foregroundThread != currentThread)
-                    attached = AttachThreadInput(currentThread, foregroundThread, true);
-
-                // Grant any process permission to set foreground
-                AllowSetForegroundWindow(ASFW_ANY);
-
-                Process? proc = Process.Start(startInfo);
-
-                // If we got a process handle, wait briefly for its window and bring to front
-                if (proc != null)
-                {
-                    try
-                    {
-                        // Allow the launched process to set itself foreground
-                        AllowSetForegroundWindow(proc.Id);
-
-                        // Give the process a moment to create its window
-                        proc.WaitForInputIdle(1000);
-
-                        if (proc.MainWindowHandle != IntPtr.Zero)
-                            SetForegroundWindow(proc.MainWindowHandle);
-                    }
-                    catch
-                    {
-                        // Ignore — process may have exited, be console-only, etc.
-                    }
-                }
-
-                // Detach
-                if (attached)
-                    AttachThreadInput(currentThread, foregroundThread, false);
+                // PowerToys 0.102.2933.0+ renews foreground permission before each
+                // command (PowerToys#50651). Launch synchronously while that grant
+                // is valid; attaching input queues or granting ASFW_ANY here cannot
+                // repair an older host and can interfere with activation.
+                using Process? process = Process.Start(startInfo);
 
                 return true;
             }

@@ -3,121 +3,89 @@ using EverythingCmdPal.Properties;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
-using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace EverythingCmdPal.Commands;
 
-/// <summary>
-/// Controller that searches Everything for the fallback "show more" item
-/// on the main Command Palette page.
-/// </summary>
-internal sealed class FallbackSearchController : IDisposable
+internal sealed partial class FallbackSearchController : IDisposable
 {
-    private const int FallbackResultCount = 3;
+    private sealed record Request(string Query, SearchSettings Settings);
+    private sealed record Probe(string Query, bool HasResults, string? Diagnostic = null);
     private readonly FallbackShowMoreItem _showMoreItem;
-    private readonly Channel<string> _queryChannel;
-    private readonly CancellationTokenSource _disposeCts = new();
-    private List<Result> _currentResults = [];
+    private readonly LatestQueryWorker<Request, Probe> _worker;
+    private readonly object _sync = new();
+    private Probe _probe = new(string.Empty, false);
+    private string _query = string.Empty;
+    private SearchSettings _lastSettings = Query.Settings.Current;
+    private bool _disposed;
 
     internal FallbackSearchController()
     {
-        _showMoreItem = new FallbackShowMoreItem(this);
-
-        _queryChannel = Channel.CreateBounded<string>(new BoundedChannelOptions(1)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true,
-            SingleWriter = false,
-        });
-
-        _ = Task.Run(ProcessQueriesAsync);
+        _showMoreItem = new(this);
+        _worker = new(ProbeAsync, probe => Volatile.Write(ref _probe, probe), _ => { },
+            Publish, ex => ExtensionHost.LogMessage($"ECP: Fallback search failed: {ex}"));
+        Query.Settings.Changed += OnSettingsChanged;
     }
 
-    /// <summary>Fallback items (just the "show more" entry).</summary>
     internal IFallbackCommandItem[] FallbackItems => [_showMoreItem];
 
     internal void OnUpdateQuery(string query)
     {
-        if (string.IsNullOrWhiteSpace(query))
+        lock (_sync)
         {
-            ClearAll();
-            return;
+            if (_disposed) return;
+            _query = query;
+            // Empty queries also invalidate in-flight work. Clearing the item
+            // directly allows an older search to make it visible again.
+            _worker.Submit(new(query, Query.Settings.Current));
         }
-        _queryChannel.Writer.TryWrite(query);
     }
 
-    private async Task ProcessQueriesAsync()
+    private static async Task<Probe> ProbeAsync(Request request, CancellationToken token)
     {
-        var reader = _queryChannel.Reader;
-        try
+        if (string.IsNullOrWhiteSpace(request.Query)) return new(request.Query, false);
+        var response = await Query.Search(request.Query, request.Settings, token,
+            maxResults: 1, loadThumbnails: false);
+        // Keep an unavailable search discoverable: opening it shows the real
+        // indexing/IPC error instead of making the extension silently vanish.
+        try { return new(request.Query, response.Results is null or { Count: > 0 },
+            response.Results is null ? response.ErrorMessage ?? "Everything is unavailable. Open to view the error." : null); }
+        finally { Query.DisposeResults(response.Results); }
+    }
+
+    private void Publish()
+    {
+        var probe = Volatile.Read(ref _probe);
+        if (probe.HasResults) _showMoreItem.SetQuery(probe.Query, probe.Diagnostic);
+        else _showMoreItem.ClearResult();
+    }
+
+    private void OnSettingsChanged(object? sender, EventArgs args)
+    {
+        lock (_sync)
         {
-            await foreach (string query in reader.ReadAllAsync(_disposeCts.Token))
-            {
-                try
-                {
-                    List<Result> results = await Query.Search(query, _disposeCts.Token,
-                        maxResults: FallbackResultCount, loadThumbnails: false);
-
-                    if (reader.TryRead(out string newerQuery))
-                    {
-                        DisposeResults(results);
-                        _queryChannel.Writer.TryWrite(newerQuery);
-                        continue;
-                    }
-
-                    UpdateFallback(results, query);
-                }
-                catch (OperationCanceledException) { break; }
-                catch { ClearAll(); }
-            }
+            var current = Query.Settings.Current;
+            bool requiresSearch = current.RequiresNewSearchComparedTo(_lastSettings);
+            _lastSettings = current;
+            if (!_disposed && requiresSearch) _worker.Submit(new(_query, current));
         }
-        catch (OperationCanceledException) { }
-    }
-
-    private void UpdateFallback(List<Result> results, string query)
-    {
-        DisposeResults(_currentResults);
-        _currentResults = results ?? [];
-
-        if (results != null && results.Count > 0)
-            _showMoreItem.SetQuery(query);
-        else
-            _showMoreItem.ClearResult();
-    }
-
-    private void ClearAll()
-    {
-        DisposeResults(_currentResults);
-        _currentResults = [];
-        _showMoreItem.ClearResult();
-    }
-
-    private static void DisposeResults(List<Result> results)
-    {
-        if (results == null) return;
-        foreach (var r in results)
-            r.Dispose();
-        results.Clear();
     }
 
     public void Dispose()
     {
-        _queryChannel.Writer.Complete();
-        _disposeCts.Cancel();
-        _disposeCts.Dispose();
-        DisposeResults(_currentResults);
-        _showMoreItem.Dispose();
+        lock (_sync)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            Query.Settings.Changed -= OnSettingsChanged;
+            _worker.Dispose();
+        }
+        _ = _worker.Completion.ContinueWith(_ => _showMoreItem.Dispose(), TaskScheduler.Default);
         GC.SuppressFinalize(this);
     }
 }
 
-/// <summary>
-/// "Show more" fallback item that navigates into the full ResultsPage.
-/// Also serves as the entry point for UpdateQuery from the framework.
-/// </summary>
 internal sealed partial class FallbackShowMoreItem : FallbackCommandItem, IDisposable
 {
     private static readonly NoOpCommand _noOp = new();
@@ -133,19 +101,14 @@ internal sealed partial class FallbackShowMoreItem : FallbackCommandItem, IDispo
         Icon = Query.DefaultIcon;
     }
 
-    public override void UpdateQuery(string query)
-    {
-        _controller.OnUpdateQuery(query);
-    }
+    public override void UpdateQuery(string query) => _controller.OnUpdateQuery(query);
 
-    internal void SetQuery(string query)
+    internal void SetQuery(string query, string? diagnostic = null)
     {
+        _resultsPage.StageQuery(query);
         Title = $"Search Everything for \"{query}\"";
-        Subtitle = Resources.top_level_subtitle;
-        Icon = Query.DefaultIcon;
+        Subtitle = diagnostic ?? Resources.top_level_subtitle;
         Command = _resultsPage;
-        _resultsPage.SearchText = query;
-        _resultsPage.UpdateQuery(query);
     }
 
     internal void ClearResult()

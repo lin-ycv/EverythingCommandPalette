@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Windows.Storage;
 using static EverythingCmdPal.Interop.NativeMethods;
 
@@ -39,49 +40,55 @@ namespace EverythingCmdPal.Helpers
             Resources.prefix_description,
             "");
 
-        private readonly ToggleSetting _detailPane = new(
+        private readonly BooleanSetting _detailPane = new(
             Namespaced(nameof(DetailPane)),
             Resources.detail_pane,
             Resources.detail_pane_description,
             true);
 
-        private readonly ToggleSetting _match = new(
+        private readonly BooleanSetting _match = new(
             Namespaced(nameof(Match)),
             Resources.match_path,
             Resources.match_path_description,
             false);
 
-        private readonly ToggleSetting _regex = new(
+        private readonly BooleanSetting _regex = new(
             Namespaced(nameof(Regex)),
             Resources.regex,
             Resources.regex_description,
             false);
 
-        private readonly ToggleSetting _runas = new(
+        private readonly BooleanSetting _runas = new(
             Namespaced(nameof(RunAs)),
             Resources.run_as,
             Resources.run_as_description,
             true);
 
-        private readonly ToggleSetting _showMore = new(
+        private readonly BooleanSetting _showMore = new(
             Namespaced(nameof(ShowMore)),
             Resources.show_more,
             Resources.show_more_description,
             true);
 
-        private readonly ToggleSetting _enableDelete = new(
+        private readonly BooleanSetting _enableDelete = new(
             Namespaced(nameof(EnableDelete)),
             Resources.enable_delete,
             Resources.enable_delete_description,
             true);
 
+        private readonly BooleanSetting _ctrlEnterOpenFolder = new(
+            Namespaced(nameof(CtrlEnterOpenFolder)),
+            Resources.ctrl_enter_open_folder,
+            Resources.ctrl_enter_open_folder_description,
+            false);
+
         private readonly TextSetting _exe = new(
             Namespaced(nameof(Exe)),
             Resources.exe,
             Resources.exe_description,
-            FindEverythingExecutablePath());
+            "");
 
-        private readonly ToggleSetting _bSendto = new(
+        private readonly BooleanSetting _bSendto = new(
             Namespaced(nameof(EnableSend)),
             Resources.sendto_enable,
             Resources.sendto_enable_description,
@@ -97,10 +104,10 @@ namespace EverythingCmdPal.Helpers
             Namespaced(nameof(FilterPath)),
             Resources.filter_path,
             Resources.filter_path_description,
-            ApplicationData.Current.LocalFolder.Path);
+            "");
 
-        public int SortOption => int.Parse(_sortOption.Value ?? "14", CultureInfo.InvariantCulture);
-        public uint Max => uint.TryParse(_max.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint result) ? result : 10; //uint.Parse(_max.Value ?? "10", CultureInfo.InvariantCulture);
+        public int SortOption => int.TryParse(_sortOption.Value, CultureInfo.InvariantCulture, out int sort) && Enum.IsDefined((Sort)sort) ? sort : 14;
+        public uint Max => uint.TryParse(_max.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint result) && result > 0 ? result : 10;
         public string Prefix => _prefix.Value ?? string.Empty;
         public bool DetailPane => _detailPane.Value;
         public bool Match => _match.Value;
@@ -108,11 +115,17 @@ namespace EverythingCmdPal.Helpers
         public bool RunAs => _runas.Value;
         public bool ShowMore => _showMore.Value;
         public bool EnableDelete => _enableDelete.Value;
+        public bool CtrlEnterOpenFolder => _ctrlEnterOpenFolder.Value;
         public string Exe => _exe.Value ?? string.Empty;
         public bool EnableSend => _bSendto.Value;
         public string Sendto => _sendto.Value ?? string.Empty;
-        public string FilterPath => _filterPath.Value ?? ApplicationData.Current.LocalFolder.Path;
-        internal bool is1_4;
+        public string FilterPath => _filterPath.Value ?? string.Empty;
+        internal readonly bool is1_4;
+        private readonly object _settingsLock = new();
+        private SearchSettings _current = null!;
+        private string _committedJson = "{}";
+        internal SearchSettings Current => Volatile.Read(ref _current);
+        internal event EventHandler? Changed;
 
         internal static string SettingsJsonPath()
         {
@@ -121,10 +134,18 @@ namespace EverythingCmdPal.Helpers
             return Path.Combine(dir, "everything.json");
         }
 
-        public SettingsManager()
+        public SettingsManager() : this(SettingsJsonPath(), ApplicationData.Current.LocalFolder.Path,
+            FindEverythingExecutablePath(), Everything_GetMinorVersion() < 5)
         {
-            is1_4 = Everything_GetMinorVersion() < 5;
-            FilePath = SettingsJsonPath();
+        }
+
+        // Keep file/form tests independent of packaged Windows and the native DLL.
+        internal SettingsManager(string filePath, string filterPath, string executablePath, bool everything14)
+        {
+            is1_4 = everything14;
+            FilePath = filePath;
+            _filterPath.Value = filterPath;
+            _exe.Value = executablePath;
 
             Settings.Add(_sortOption);
             Settings.Add(_max);
@@ -135,6 +156,7 @@ namespace EverythingCmdPal.Helpers
             Settings.Add(_runas);
             Settings.Add(_showMore);
             Settings.Add(_enableDelete);
+            Settings.Add(_ctrlEnterOpenFolder);
             Settings.Add(_exe);
             Settings.Add(_bSendto);
             Settings.Add(_sendto);
@@ -144,30 +166,67 @@ namespace EverythingCmdPal.Helpers
             // Load settings from file upon initialization
             LoadSettings();
 
-            Settings.SettingsChanged += (s, a) => SaveSettings();
-            Everything_SetRequestFlags(Request.FILE_NAME | Request.PATH | Request.EXTENSION | Request.DATE_MODIFIED | Request.SIZE);
-            Everything_SetSort((Sort)SortOption);
-            Everything_SetMax(Max);
-            Everything_SetMatchPath(Match);
-            Everything_SetRegex(Regex);
+            Settings.SettingsChanged += (_, _) => SaveSettings();
+        }
 
-            if (is1_4)
-                CheckFilters();
+        public override void LoadSettings()
+        {
+            lock (_settingsLock)
+            {
+                if (File.Exists(FilePath))
+                {
+                    try { Settings.Update(SettingsStorage.Normalize(File.ReadAllText(FilePath))); }
+                    catch (Exception ex) { ExtensionHost.LogMessage($"ECP: Cannot load settings: {ex.Message}"); }
+                }
+                PublishSettings();
+            }
         }
 
         public override void SaveSettings()
         {
-            Everything_SetSort((Sort)SortOption);
-            Everything_SetMax(Max);
-            Everything_SetMatchPath(Match);
-            Everything_SetRegex(Regex);
-            if (is1_4)
-                CheckFilters();
-            base.SaveSettings();
+            lock (_settingsLock)
+            {
+                try
+                {
+                    // Persist before announcing a new snapshot. No Everything SDK
+                    // mutations occur in a settings callback or on the host UI thread.
+                    _sortOption.Value = SortOption.ToString(CultureInfo.InvariantCulture);
+                    _max.Value = Max.ToString(CultureInfo.InvariantCulture);
+                    if (EnableSend && !SendToTemplate.TryParse(Sendto, out _, out _))
+                        throw new FormatException("Send to requires an executable,arguments template (for example notepad.exe,$P$).");
+                    var next = CaptureSettings();
+                    string json = Settings.ToJson();
+                    SettingsStorage.Save(FilePath, json);
+                    _committedJson = json;
+                    Volatile.Write(ref _current, next);
+                }
+                catch
+                {
+                    Settings.Update(_committedJson);
+                    throw; // Let CmdPal display a save failure instead of pretending it worked.
+                }
+            }
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void PublishSettings()
+        {
+            var next = CaptureSettings();
+            _committedJson = Settings.ToJson();
+            Volatile.Write(ref _current, next);
+        }
+
+        private SearchSettings CaptureSettings()
+        {
+            CheckFilters();
+            return new SearchSettings(
+                SortOption, Max, Prefix, DetailPane, Match, Regex, RunAs, ShowMore,
+                EnableDelete, CtrlEnterOpenFolder, Exe, EnableSend, Sendto, is1_4,
+                new Dictionary<string, string>(_filters));
         }
 
         private readonly Dictionary<string, string> _filters = [];
-        public Dictionary<string, string> Filters => _filters;
+        public IReadOnlyDictionary<string, string> Filters => Current.Filters;
 
         internal void CheckFilters()
         {
@@ -181,6 +240,7 @@ namespace EverythingCmdPal.Helpers
             if (!File.Exists(fullpath))
                 fullpath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory.ToString(), $"Assets\\{filename}");
 
+            _filters.Clear();
             string[] strArr;
             try
             {
@@ -192,7 +252,6 @@ namespace EverythingCmdPal.Helpers
                 return;
             }
 
-            _filters.Clear();
             foreach (string str in strArr)
             {
                 if (str.Length == 0 || str[0] == '#') continue;
@@ -229,7 +288,7 @@ namespace EverythingCmdPal.Helpers
 
                 foreach (string subKey in uninstallKeys)
                 {
-                    using RegistryKey key = Registry.LocalMachine.OpenSubKey(subKey);
+                    using RegistryKey? key = Registry.LocalMachine.OpenSubKey(subKey);
                     if (key != null)
                     {
                         // Check install location from registry
@@ -244,7 +303,7 @@ namespace EverythingCmdPal.Helpers
                         // Try to extract location from uninstall string
                         if (key.GetValue("UninstallString") is string uninstallString)
                         {
-                            string dir = Path.GetDirectoryName(uninstallString.Contains('"') ? uninstallString.Split('"')[1] : uninstallString);
+                            string? dir = Path.GetDirectoryName(uninstallString.Contains('"') ? uninstallString.Split('"')[1] : uninstallString);
                             if (dir != null)
                             {
                                 string exe = Path.Combine(dir, "Everything.exe");

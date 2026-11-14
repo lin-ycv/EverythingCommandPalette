@@ -297,4 +297,10 @@ If filters.toml does not exist in this folder, the default template will be appl
   <data name="detail_pane_description" xml:space="preserve">
     <value>Preview selection details on the right</value>
   </data>
+  <data name="ctrl_enter_open_folder" xml:space="preserve">
+    <value>Ctrl+Enter opens the containing folder</value>
+  </data>
+  <data name="ctrl_enter_open_folder_description" xml:space="preserve">
+    <value>Use Ctrl+Enter to open the containing folder, Ctrl+Shift+Enter to browse in Everything, and Ctrl+Shift+R to run as administrator. Off keeps the existing shortcuts. Saved changes refresh the current search.</value>
+  </data>
 </root>

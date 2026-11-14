@@ -11,25 +11,47 @@ namespace EverythingCmdPal.Commands
     {
         // Extensions for adding run as admin context menu item for applications
         private readonly string[] _appExtensions = [".exe", ".bat", ".appref-ms", ".lnk"];
-        internal CommandContextItem[] LoadCommands(string fullPath, bool isFolder, ResultsPage page)
+        internal CommandContextItem[] LoadCommands(string fullPath, bool isFolder, ResultsPage page, SearchSettings settings)
         {
             List<CommandContextItem> items = [];
-            string p = $"\"{(isFolder ? fullPath : Path.GetDirectoryName(fullPath))}\\\" ";
-            items.Add(new CommandContextItem(new BrowseCommand(p, page))
-            {
-                RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, false, false, (int)VirtualKey.Enter, 0),
-                
-            });
+            bool ctrlEnterOpenFolder = settings.CtrlEnterOpenFolder;
 
-            // works but dialog not topmost (handler/UI Thread)
+            string p = $"\"{(isFolder ? fullPath : Path.GetDirectoryName(fullPath))}\\\" ";
+            var browse = new CommandContextItem(new BrowseCommand(p, page))
+            {
+                RequestedShortcut = ctrlEnterOpenFolder
+                    ? KeyChordHelpers.FromModifiers(ctrl: true, shift: true, vkey: (int)VirtualKey.Enter)
+                    : default,
+            };
+            var openFolder = new CommandContextItem(new OpenFolderCommand(fullPath))
+            {
+                RequestedShortcut = ctrlEnterOpenFolder
+                    ? default
+                    : KeyChordHelpers.FromModifiers(ctrl: true, shift: true, vkey: (int)VirtualKey.E),
+            };
+
+            // Ctrl+Enter belongs to CmdPal's first visible secondary action.
+            // Requesting it explicitly is ignored by the host (PowerToys#50843).
+            if (ctrlEnterOpenFolder)
+            {
+                items.Add(openFolder);
+                items.Add(browse);
+            }
+            else
+            {
+                items.Add(browse);
+                items.Add(openFolder);
+            }
+
+            // Shift+Enter remains available for Open with in both shortcut modes.
             if (!isFolder)
                 items.Add(new CommandContextItem(new OpenWithCommand(fullPath))
                 {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(false, false, true, false, (int)VirtualKey.Enter, 0),
                 });
 
-            if (Query.Settings.EnableSend)
-                items.Add(new CommandContextItem(new SendCommand(fullPath, Query.Settings.Sendto))
+            if (settings.EnableSend && SendToTemplate.TryParse(settings.Sendto, out _, out _))
+                items.Add(new CommandContextItem(new SendCommand(fullPath, settings.Sendto))
                 {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, false, false, (int)VirtualKey.N, 0),
                 });
@@ -37,19 +59,19 @@ namespace EverythingCmdPal.Commands
             {
                 items.Add(new CommandContextItem(new RunAdminCommand(fullPath, isFolder))
                 {
-                    RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, true, false, (int)VirtualKey.Enter, 0)
+                    // Ctrl+Shift+Enter belongs to Browse in the alternate mode.
+                    RequestedShortcut = KeyChordHelpers.FromModifiers(
+                        ctrl: true, shift: true,
+                        vkey: (int)(ctrlEnterOpenFolder ? VirtualKey.R : VirtualKey.Enter))
                 });
-                if (Query.Settings.RunAs)
+                if (settings.RunAs)
                     items.Add(new CommandContextItem(new RunAsCommand(fullPath, isFolder))
                     {
                         RequestedShortcut = KeyChordHelpers.FromModifiers(true, false, true, false, (int)VirtualKey.U, 0)
                     });
             }
 
-            items.AddRange([
-                new CommandContextItem(new OpenFolderCommand(fullPath)){
-                    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,true,false,(int)VirtualKey.E, 0)
-                },
+            items.AddRange((CommandContextItem[])[
                 // Working using win32Helper
                 new CommandContextItem(new CopyCommand(fullPath, isFolder)) {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.C, 0)
@@ -65,7 +87,7 @@ namespace EverythingCmdPal.Commands
                 //    RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.M, 0)
                 //},
                 new CommandContextItem(new DeleteCommand(fullPath, isFolder)) {
-                    RequestedShortcut = Query.Settings.EnableDelete
+                    RequestedShortcut = settings.EnableDelete
                         ? KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.Delete, 0)
                         : default,
                 },

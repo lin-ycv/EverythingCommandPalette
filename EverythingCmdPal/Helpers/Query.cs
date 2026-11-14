@@ -10,6 +10,7 @@ using System.Threading;
 using static EverythingCmdPal.Interop.NativeMethods;
 using Windows.Storage.Streams;
 using System.IO;
+using System.Diagnostics;
 
 namespace EverythingCmdPal.Helpers
 {
@@ -21,140 +22,178 @@ namespace EverythingCmdPal.Helpers
         // and must be serialized across all callers (ResultsPage + fallback).
         private static readonly SemaphoreSlim _sdkGate = new(1, 1);
 
-        internal static async Task<List<Result>> Search(string query, CancellationToken token)
+        internal sealed record SearchResponse(List<Result>? Results, uint ErrorCode = 0,
+            string? ErrorMessage = null, string? WarningMessage = null);
+
+        internal static async Task<SearchResponse> Search(string query, SearchSettings settings,
+            CancellationToken token, int maxResults = -1, bool loadThumbnails = true)
         {
-            await _sdkGate.WaitAsync(token);
+            var results = new List<Result>();
+            var timer = Stopwatch.StartNew();
+            long gateMs = 0, queryMs = 0, metadataMs = 0;
+            bool acquired = false;
+            string? warning = null;
             try
             {
-                return await SearchCore(query, token);
-            }
-            finally
-            {
-                _sdkGate.Release();
-            }
-        }
+                await _sdkGate.WaitAsync(token);
+                acquired = true;
+                try
+                {
+                    token.ThrowIfCancellationRequested();
+                    gateMs = timer.ElapsedMilliseconds;
+                    var preflight = SearchPreflight.Check((Sort)settings.SortOption,
+                        type => ReadCapability(() => Everything_IsFileInfoIndexed(type)),
+                        sort => ReadCapability(() => Everything_IsFastSort(sort)));
+                    if (preflight.Blocked)
+                        return new(null, preflight.ErrorCode, preflight.ErrorMessage);
+                    warning = preflight.WarningMessage;
+                    token.ThrowIfCancellationRequested();
+                    uint limit = maxResults > 0 ? Math.Min((uint)maxResults, settings.Max) : settings.Max;
+                    bool details = settings.DetailPane && loadThumbnails;
+                    Everything_SetRequestFlags(SearchPreflight.RequestFlags(details));
+                    // A fallback existence probe needs no ranked results. Avoid
+                    // sorting all matches by metadata just to retrieve one item.
+                    Everything_SetSort(loadThumbnails ? (Sort)settings.SortOption : Sort.NAME_ASCENDING);
+                    Everything_SetMax(limit);
+                    Everything_SetMatchPath(settings.Match);
+                    Everything_SetRegex(settings.Regex);
+                    Everything_SetSearchW(PrepareQuery(query, settings));
+                    long queryStart = timer.ElapsedMilliseconds;
+                    bool success = Everything_QueryW(true);
+                    queryMs = timer.ElapsedMilliseconds - queryStart;
+                    if (!success)
+                        return new SearchResponse(null, Everything_GetLastError());
+                    token.ThrowIfCancellationRequested();
 
-        /// <summary>
-        /// Lightweight search for fallback results: limits result count and
-        /// optionally skips thumbnail loading for near-instant returns.
-        /// </summary>
-        internal static async Task<List<Result>> Search(string query, CancellationToken token, int maxResults, bool loadThumbnails)
-        {
-            await _sdkGate.WaitAsync(token);
-            try
-            {
-                return await SearchCore(query, token, maxResults, loadThumbnails);
-            }
-            finally
-            {
-                _sdkGate.Release();
-            }
-        }
+                    uint count = Math.Min(Everything_GetNumResults(), limit);
+                    for (uint i = 0; i < count; ++i)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        string? name = Marshal.PtrToStringUni(Everything_GetResultFileNameW(i));
+                        string? path = Marshal.PtrToStringUni(Everything_GetResultPathW(i));
+                        if (name is null || path is null) continue;
+                        results.Add(new Result
+                        {
+                            FileName = name,
+                            FilePath = path,
+                            FullName = Path.Combine(path, name),
+                            Extension = Marshal.PtrToStringUni(Everything_GetResultExtensionW(i)) ?? string.Empty,
+                            IsFolder = Everything_IsFolderResult(i),
+                            Preview = details,
+                            SizeKB = details ? EPT_GetSizeKB(i) : 0,
+                            ModifiedDate = details ? EPT_GetModifiedDateTime(i) : string.Empty,
+                            Icon = DefaultIcon,
+                        });
+                    }
+                    metadataMs = timer.ElapsedMilliseconds - queryStart - queryMs;
+                }
+                finally
+                {
+                    try { Everything_SetMax(settings.Max); }
+                    finally { _sdkGate.Release(); }
+                }
 
-        private static Task<List<Result>> SearchCore(string query, CancellationToken token)
-            => SearchCore(query, token, maxResults: -1, loadThumbnails: true);
-
-        private static async Task<List<Result>> SearchCore(string query, CancellationToken token, int maxResults, bool loadThumbnails)
-        {
-            string orgQuery = query;
-            token.ThrowIfCancellationRequested();
-            if (Settings.Prefix.Length > 0)
-                query = Settings.Prefix + query;
-
-            if (Settings.is1_4 && query.Contains(':'))
-                foreach (var kv in Settings.Filters)
-                    if (query.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
-                        query = query.Replace(kv.Key, string.Empty, StringComparison.OrdinalIgnoreCase).Trim() + $" {kv.Value}";
-
-            // Temporarily override max if a specific limit was requested
-            if (maxResults > 0)
-                Everything_SetMax((uint)maxResults);
-
-            Everything_SetSearchW(query);
-            if (!Everything_QueryW(true) || token.IsCancellationRequested)
-            {
-                // Restore original max
-                if (maxResults > 0)
-                    Everything_SetMax(Settings.Max);
-                return null;
-            }
-            token.ThrowIfCancellationRequested();
-
-            var resultCount = Math.Min(Everything_GetNumResults(), Settings.Max);
-
-            // Create a List to store ListItems
-            var resultsList = new List<Result>();
-
-            // Loop through the results and add them to the List
-            for (uint i = 0; i < resultCount; i++)
-            {
-                Result r = new();
-                token.ThrowIfCancellationRequested();
-                // Get the result file name
-                r.FileName = Marshal.PtrToStringUni(Everything_GetResultFileNameW(i));
-
-                // Get the result file path
-                r.FilePath = Marshal.PtrToStringUni(Everything_GetResultPathW(i));
-
-                // Get the result file extension
-                r.Extension = Marshal.PtrToStringUni(Everything_GetResultExtensionW(i));
-
-                r.Preview = Settings.DetailPane;
-
-                r.SizeKB = EPT_GetSizeKB(i);
-
-                r.ModifiedDate = EPT_GetModifiedDateTime(i);
-
-                if (r.FileName == null || r.FilePath == null)
-                    continue;
-
-                // Check if it's a folder
-                r.IsFolder = Everything_IsFolderResult(i);
-
-                // Concatenate the file path and file name
-                r.FullName = Path.Combine(r.FilePath, r.FileName);
-
-                // Get icon of the file
-                r.Icon = null;
+                // Shell and thumbnail work cannot mutate Everything's global query
+                // state. Keep it outside the gate so fallback probes aren't delayed.
                 if (loadThumbnails)
                 {
-                    try
+                    var typeNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var result in results)
                     {
-                        var stream = await ThumbnailHelper.GetThumbnail(r.FullName);
-
-                        if (stream != null)
+                        token.ThrowIfCancellationRequested();
+                        try
                         {
-                            r.ThumbnailStream = stream;
-                            var data = new IconData(RandomAccessStreamReference.CreateFromStream(stream));
-                            r.Icon = new IconInfo(data, data);
+                            var stream = await ResultThumbnailHelper.GetThumbnail(result.FullName, result.IsFolder);
+                            if (stream is not null)
+                            {
+                                result.ThumbnailStream = stream;
+                                token.ThrowIfCancellationRequested();
+                                var data = new IconData(RandomAccessStreamReference.CreateFromStream(stream));
+                                result.Icon = new IconInfo(data, data);
+                            }
+                        }
+                        catch (OperationCanceledException) { throw; }
+                        catch (Exception ex)
+                        {
+                            // The row is not published yet; a failed IconInfo
+                            // construction must not retain its unused stream.
+                            result.Dispose();
+                            result.Icon = DefaultIcon;
+                            ExtensionHost.LogMessage($"ECP: Icon unavailable: {result.FullName}: {ex.Message}");
+                        }
+                        if (settings.DetailPane)
+                        {
+                            string key = result.IsFolder ? "\0folder" : result.Extension;
+                            if (!typeNames.TryGetValue(key, out string? type))
+                            {
+                                type = Interop.Shell32Methods.GetFileTypeDescription(result.FullName, result.IsFolder) ?? string.Empty;
+                                typeNames.Add(key, type);
+                            }
+                            result.FileType = type;
                         }
                     }
-                    catch (Exception e)
-                    {
-                        ExtensionHost.LogMessage($"Failed to get the icon: {r.FullName}\n{e.Message}");
-                    }
                 }
-                r.Icon ??= DefaultIcon;
-
-                r.FileType = Interop.Shell32Methods.GetFileTypeDescription(r.FullName);
-
-                resultsList.Add(r);
+                token.ThrowIfCancellationRequested();
+                return new SearchResponse(results, WarningMessage: warning);
             }
-            // Restore original max if it was overridden
-            if (maxResults > 0)
-                Everything_SetMax(Settings.Max);
-            token.ThrowIfCancellationRequested();
-            return resultsList;
+            catch
+            {
+                DisposeResults(results);
+                throw;
+            }
+            finally
+            {
+                if (!acquired) gateMs = timer.ElapsedMilliseconds;
+                if (timer.ElapsedMilliseconds >= 1000)
+                    ExtensionHost.LogMessage($"ECP: Slow search: total={timer.ElapsedMilliseconds}ms, SDK gate={gateMs}ms, native query={queryMs}ms, metadata={metadataMs}ms. Remaining time includes preflight and Shell/thumbnail work.");
+            }
         }
-        internal static List<ListItem> EverythingFailed()
+
+        private static SearchPreflight.Capability ReadCapability(Func<bool> check)
         {
+            bool enabled = check();
+            // False also means IPC failure. Capture its error immediately, under
+            // the same SDK gate, before another native call can overwrite it.
+            return new(enabled, enabled ? 0 : Everything_GetLastError());
+        }
+
+        internal static string PrepareQuery(string query, SearchSettings settings)
+        {
+            query = settings.Prefix + query;
+            if (settings.IsEverything14 && query.Contains(':'))
+                foreach (var filter in settings.Filters)
+                    if (query.Contains(filter.Key, StringComparison.OrdinalIgnoreCase))
+                        query = query.Replace(filter.Key, string.Empty, StringComparison.OrdinalIgnoreCase).Trim() + $" {filter.Value}";
+            return query;
+        }
+
+        internal static void IncrementRunCount(string path)
+        {
+            _sdkGate.Wait();
+            try { _ = Everything_IncRunCountFromFileNameW(path); }
+            finally { _sdkGate.Release(); }
+        }
+
+        internal static void DisposeResults(List<Result>? results)
+        {
+            if (results is null) return;
+            foreach (var result in results) result.Dispose();
+        }
+
+        internal static List<ListItem> EverythingFailed(uint lastError, string? errorMessage = null)
+        {
+            if (errorMessage is not null)
+                return [new ListItem(new NoOpCommand())
+                {
+                    Title = "Search blocked by Everything indexing settings",
+                    Subtitle = errorMessage,
+                }];
             // Throwing an exception would make sense, however,
             // WinRT & COM totally eat any exception info.
             // var e = new Win32Exception("Unable to Query");
-            var lastError = Everything_GetLastError();
             var message = lastError switch
             {
-                (uint)EverythingErrors.EVERYTHING_OK => "The operation completed successfully",
+                (uint)EverythingErrors.EVERYTHING_OK => "Everything could not complete the query and reported no error code. Check the Everything client and query settings.",
                 (uint)EverythingErrors.EVERYTHING_ERROR_MEMORY => "Failed to allocate memory for the search query",
                 (uint)EverythingErrors.EVERYTHING_ERROR_IPC => "IPC is not available",
                 (uint)EverythingErrors.EVERYTHING_ERROR_REGISTERCLASSEX => "Failed to register the search query window class",

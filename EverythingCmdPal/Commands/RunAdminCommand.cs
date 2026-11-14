@@ -26,7 +26,7 @@ namespace EverythingCmdPal.Commands
             string msg = string.Empty;
             if (ShellHelper.OpenInShell(_fullPath, ref msg, null, path, "runAs"))
             {
-                _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+                Query.IncrementRunCount(_fullPath);
                 return CommandResult.Dismiss();
             }
             else

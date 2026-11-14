@@ -5,8 +5,6 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 using Microsoft.CommandPalette.Extensions;
 using System.IO;
 using System;
-using Windows.AI.Actions.Hosting;
-using Windows.AI.Actions;
 
 namespace EverythingCmdPal.Commands
 {
@@ -29,7 +27,7 @@ namespace EverythingCmdPal.Commands
             string msg = string.Empty;
             if (ShellHelper.OpenInShell(_fullPath, ref msg, null, path))
             {
-                _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+                Query.IncrementRunCount(_fullPath);
                 return CommandResult.Dismiss();
             }
             else

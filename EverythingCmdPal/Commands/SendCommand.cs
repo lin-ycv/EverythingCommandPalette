@@ -14,9 +14,9 @@ namespace EverythingCmdPal.Commands
             _fullPath = fullPath;
             Name = Resources.sendto;
             Icon = new("\uE8A7");
-            var split = exe.Split(',');
-            _exe = split[0];
-            _arg = split[1].Replace("$P$", $"\"{_fullPath}\"");
+            if (!SendToTemplate.TryParse(exe, out _exe, out string arguments))
+                throw new System.ArgumentException("Send to requires an executable,arguments template.", nameof(exe));
+            _arg = arguments.Replace("$P$", $"\"{_fullPath}\"");
         }
 
         public override CommandResult Invoke()
@@ -24,7 +24,7 @@ namespace EverythingCmdPal.Commands
             string msg = string.Empty;
             if (ShellHelper.OpenInShell(_exe, ref msg, _arg))
             {
-                _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+                Query.IncrementRunCount(_fullPath);
                 return CommandResult.Dismiss();
             }
             else

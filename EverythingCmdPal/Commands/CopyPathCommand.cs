@@ -35,7 +35,7 @@ namespace EverythingCmdPal.Commands
             //    //ExtensionHost.LogMessage($"EPT-CP: {Resources.clipboard_failed}\n{_fullPath}\n{e.Message}");
             //    ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.clipboard_failed}\n{_fullPath}\n{e.Message}", State = MessageState.Error }, StatusContext.Page);
             //}
-            _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+            Query.IncrementRunCount(_fullPath);
             return CommandResult.KeepOpen();
         }
     }

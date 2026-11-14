@@ -68,6 +68,25 @@ namespace EverythingCmdPal.Interop
             EVERYTHING_ERROR_INVALIDCALL,
         }
 
+        // These are IPC file-info identifiers, NOT the Request bit flags above.
+        internal enum FileInfoType : uint
+        {
+            FileSize = 1,
+            FolderSize = 2,
+            DateCreated = 3,
+            DateModified = 4,
+            DateAccessed = 5,
+            Attributes = 6,
+        }
+
+        [DllImport(dllName)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool Everything_IsFileInfoIndexed(FileInfoType fileInfoType);
+
+        [DllImport(dllName)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool Everything_IsFastSort(Sort sortType);
+
         [StructLayout(LayoutKind.Sequential)]
         public struct FILETIME
         {

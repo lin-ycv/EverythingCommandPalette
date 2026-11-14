@@ -15,7 +15,7 @@ namespace EverythingCmdPal.Commands
 
         public override CommandResult Invoke()
         {
-            string _path = Query.Settings.Exe;
+            string _path = Query.Settings.Current.Exe;
             string msg = string.Empty, verb = string.Empty;
             if (string.IsNullOrEmpty(_path))
             {

@@ -46,7 +46,7 @@ namespace EverythingCmdPal.Commands
             //    {
             //        throw new InvalidOperationException("SetContentWithOptions returned false");
             //    }
-            //    _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+            //    Query.IncrementRunCount(_fullPath);
             //    Clipboard.Flush();
             //}
             //catch (Exception e)
@@ -56,7 +56,7 @@ namespace EverythingCmdPal.Commands
             //}
             //});
 
-            _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+            Query.IncrementRunCount(_fullPath);
             return CommandResult.Dismiss();
         }
     }

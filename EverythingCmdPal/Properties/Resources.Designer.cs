@@ -59,6 +59,16 @@ namespace EverythingCmdPal.Properties {
                 resourceCulture = value;
             }
         }
+        internal static string ctrl_enter_open_folder {
+            get {
+                return ResourceManager.GetString("ctrl_enter_open_folder", resourceCulture);
+            }
+        }
+        internal static string ctrl_enter_open_folder_description {
+            get {
+                return ResourceManager.GetString("ctrl_enter_open_folder_description", resourceCulture);
+            }
+        }
         internal static string enable_delete {
             get {
                 return ResourceManager.GetString("enable_delete", resourceCulture);

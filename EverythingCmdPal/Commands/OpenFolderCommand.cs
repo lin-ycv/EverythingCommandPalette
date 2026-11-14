@@ -20,14 +20,20 @@ namespace EverythingCmdPal.Commands
         public override CommandResult Invoke()
         {
             string msg = string.Empty;
-            if (ShellHelper.OpenInShell("explorer.exe", ref msg, $"/select,\"{_fullPath}\""))
+            bool opened = ShellFolder.OpenAndSelect(_fullPath, out string shellError);
+            if (!opened)
             {
-                _ = NativeMethods.Everything_IncRunCountFromFileNameW(_fullPath);
+                ExtensionHost.LogMessage($"ECP: Shell selection failed; trying Explorer: {shellError}");
+                opened = ShellHelper.OpenInShell("explorer.exe", ref msg, $"/select,\"{_fullPath}\"");
+            }
+            if (opened)
+            {
+                Query.IncrementRunCount(_fullPath);
                 return CommandResult.Dismiss();
             }
             else
             {
-                //ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_exception}\n{_fullPath}\n{msg}", State = MessageState.Error }, StatusContext.Page);
+                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.open_exception}\n{_fullPath}\n{msg}", State = MessageState.Error }, StatusContext.Page);
                 return CommandResult.KeepOpen();
             }
         }
