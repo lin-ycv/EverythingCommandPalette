@@ -1,4 +1,4 @@
-﻿using Microsoft.CommandPalette.Extensions.Toolkit;
+using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
 using System.Diagnostics;
 
@@ -27,7 +27,7 @@ namespace EverythingCmdPal3.Commands
             };
             try
             {
-                Process.Start(startInfo);
+                using var process = Process.Start(startInfo);
                 return true;
             }
             catch (Exception e)

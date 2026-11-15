@@ -1,16 +1,16 @@
-﻿using EverythingCmdPal3.Properties;
+using EverythingCmdPal3.Properties;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
 namespace EverythingCmdPal3.Commands
 {
-    internal sealed partial class BrowseCommand(string q, DynamicListPage p) : InvokableCommand
+    internal sealed partial class BrowseCommand(string q, ResultsPage p) : InvokableCommand
     {
         public override string Name => Resources.browse;
         public override IconInfo Icon => new("\uF89A");
 
         public override CommandResult Invoke()
         {
-            p.SearchText = $"{q}";
+            p.UpdateQuery(q);
             return CommandResult.KeepOpen();
         }
     }

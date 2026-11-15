@@ -4,26 +4,30 @@
     <RootNamespace>EverythingCmdPal3</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <WindowsSdkPackageVersion>10.0.22621.57</WindowsSdkPackageVersion>
-    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+    <WindowsSdkPackageVersion>10.0.26100.87</WindowsSdkPackageVersion>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <!-- The Store reserves the fourth version component. Advance Major/Minor/Build instead. -->
+    <AppxAutoIncrementPackageRevision>false</AppxAutoIncrementPackageRevision>
+	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+	  <GenerateAppxPackageOnBuild Condition="'$(Configuration)'=='Release'">true</GenerateAppxPackageOnBuild>
+	  <GenerateSatelliteAssembliesForCore Condition="'$(Configuration)'=='Release'">true</GenerateSatelliteAssembliesForCore>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Assets\EverythingPT.svg" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\SplashScreen.scale-200.png" />
-    <Content Include="Assets\LockScreenLogo.scale-200.png" />
-    <Content Include="Assets\Square150x150Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.scale-200.png" />
-    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <!-- Keep all scale/theme variants, including StoreLogo, in the package and PRI. -->
+    <Content Include="Assets\*.png" Exclude="Assets\LockScreenLogo*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,11 +45,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CommandPalette.Extensions" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" />
-    <PackageReference Include="Microsoft.Web.WebView2" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.MSIX" PrivateAssets="all" />
     <PackageReference Include="Shmuelie.WinRTServer" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="ToolGood.Words.Pinyin" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.zh-HK.Designer.cs">
@@ -79,13 +82,41 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Content Update="Assets\EverythingPT.svg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <None Update="Everything3_x64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory Condition="'$(Platform)' == 'x64'">PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory Condition="'$(Platform)' == 'x64'">PreserveNewest</CopyToPublishDirectory>
     </None>
+    <None Update="Everything3_ARM64.dll">
+      <CopyToOutputDirectory Condition="'$(Platform)' == 'ARM64'">PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory Condition="'$(Platform)' == 'ARM64'">PreserveNewest</CopyToPublishDirectory>
+    </None>
+    <Content Include="Assets\EverythingPT.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\EverythingPT_theme-light.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\EverythingPT_theme-dark.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Public\.gitkeep" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <PropertyGroup Condition="'$(Platform)' == 'ARM64'">
+    <DefineConstants>$(DefineConstants);ARM64</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Helper\Helper.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+  <Target Name="IncludeHelper" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <_HelperFile Include="..\Helper\bin\$(Platform)\$(Configuration)\net10.0-windows\**\*.*" />
+      <Content Include="@(_HelperFile)" Link="Win32\%(_HelperFile.RecursiveDir)%(_HelperFile.Filename)%(_HelperFile.Extension)" TargetPath="Win32\%(_HelperFile.RecursiveDir)%(_HelperFile.Filename)%(_HelperFile.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromResourceIndex="true" />
+    </ItemGroup>
+  </Target>
+  <Target Name="ValidateSdkArchitecture" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(Platform)' != 'x64' and '$(Platform)' != 'ARM64'" Text="Build ECP3 with Platform=x64 or Platform=ARM64 to select the matching SDK3 library." />
+    <Error Condition="('$(Platform)' == 'x64' and '$(RuntimeIdentifier)' != 'win-x64') or ('$(Platform)' == 'ARM64' and '$(RuntimeIdentifier)' != 'win-arm64')" Text="Platform and RuntimeIdentifier must select the same architecture." />
+  </Target>
+  <Target Name="ValidateStoreVersion" BeforeTargets="PrepareForBuild" Condition="'$(Configuration)' == 'Release'">
+    <XmlPeek XmlInputPath="$(MSBuildProjectDirectory)\Package.appxmanifest" Query="/*[local-name()='Package']/*[local-name()='Identity']/@Version">
+      <Output TaskParameter="Result" PropertyName="_StoreManifestVersion" />
+    </XmlPeek>
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(_StoreManifestVersion)', '^[1-9][0-9]*\.[0-9]+\.[0-9]+\.0$'))" Text="Store packages require a nonzero major version and a zero fourth component. Update Package.appxmanifest from '$(_StoreManifestVersion)' to Major.Minor.Build.0; increment Build for updates." />
+  </Target>
 
   <!--
     Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
@@ -103,7 +134,8 @@
     <!-- Suppress DynamicallyAccessedMemberTypes.PublicParameterlessConstructor in fallback code path of Windows SDK projection -->
     <WarningsNotAsErrors>IL2081</WarningsNotAsErrors>
 
-    <PublishTrimmed>true</PublishTrimmed>
+    <PublishTrimmed Condition="'$(Configuration)' == 'Release'">true</PublishTrimmed>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Release'">false</PublishTrimmed>
     <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 </Project>

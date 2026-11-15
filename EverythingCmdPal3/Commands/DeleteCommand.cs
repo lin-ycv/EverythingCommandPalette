@@ -1,37 +1,37 @@
-﻿using EverythingCmdPal3.Properties;
+using EverythingCmdPal3.Helpers;
+using EverythingCmdPal3.Properties;
+using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using System.IO;
+using System;
 
-namespace EverythingCmdPal3.Commands
+namespace EverythingCmdPal3.Commands;
+
+internal sealed partial class DeleteCommand(string path) : InvokableCommand
 {
-    internal sealed partial class Delete(string p, bool f) : InvokableCommand
+    public override string Name => Resources.delete;
+    public override IconInfo Icon => new("\uE74D");
+    public override CommandResult Invoke() => CommandResult.Confirm(new ConfirmationArgs
     {
-        public override CommandResult Invoke()
-        {
-            // should use FileSystem.DeleteFile
-            // but doesn't work on non-ui thread
-            if (f)
-                Directory.Delete(p, true);
-            else
-                File.Delete(p);
-            return CommandResult.Dismiss();
-        }
-    }
-    internal sealed partial class DeleteCommand(string p, bool f) : InvokableCommand
-    {
-        public override string Name => Resources.delete;
-        public override IconInfo Icon => new("\uE74D");
+        Title = Resources.delete_confirm,
+        Description = $"{path}\n\nMove this item to the Recycle Bin?",
+        PrimaryCommand = new RecycleCommand(path),
+        IsPrimaryCommandCritical = true,
+    });
 
+    private sealed partial class RecycleCommand(string path) : InvokableCommand
+    {
         public override CommandResult Invoke()
         {
-            var args = new ConfirmationArgs()
+            try
             {
-                Title = Resources.delete_confirm,
-                Description = $"{p}\n\n{Resources.delete_warn}",
-                PrimaryCommand = new Delete(p, f),
-                IsPrimaryCommandCritical = true,
-            };
-            return CommandResult.Confirm(args);
+                Win32Helper.Execute(path, "--delete");
+                return CommandResult.Dismiss();
+            }
+            catch (Exception ex)
+            {
+                StatusNotifications.Show(new StatusMessage { Message = ex.Message, State = MessageState.Error });
+                return CommandResult.KeepOpen();
+            }
         }
     }
 }

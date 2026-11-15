@@ -1,24 +1,20 @@
-﻿using EverythingCmdPal3.Properties;
+using EverythingCmdPal3.Helpers;
+using EverythingCmdPal3.Properties;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 
-namespace EverythingCmdPal3.Commands
-{
-    internal sealed partial class ShowMore(string q, string e) : InvokableCommand
-    {
-        public override IconInfo Icon => new("\uf78b");
-        public override string Name => Resources.show_more;
-        public override ICommandResult Invoke()
-        {
-            string m = string.Empty;
-            if(Shell.OpenInShell(e, ref m, $@"-s ""{q.Replace("\"", "\"\"\"")}"""))
-                return CommandResult.Dismiss();
-            else
-            {
-                ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.ERROR_UNKNOWN}\n{q}\n{m}", State = MessageState.Error }, StatusContext.Page);
-                return CommandResult.KeepOpen();
-            }
-        }
+namespace EverythingCmdPal3.Commands;
 
+internal sealed partial class ShowMore(string query, string executable, string instance) : InvokableCommand
+{
+    public override IconInfo Icon => new("\uF78B");
+    public override string Name => Resources.show_more;
+    public override ICommandResult Invoke()
+    {
+        string message = string.Empty;
+        string args = CommandLine.EverythingSearch(query, instance);
+        if (Shell.OpenInShell(executable, ref message, args)) return CommandResult.Dismiss();
+        StatusNotifications.Show(new StatusMessage { Message = $"{Resources.ERROR_UNKNOWN}\n{message}", State = MessageState.Error });
+        return CommandResult.KeepOpen();
     }
 }

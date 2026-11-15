@@ -211,8 +211,7 @@ Used for "Show more" option</value>
     <value>Instance Name</value>
   </data>
   <data name="instance_description" xml:space="preserve">
-    <value>Name of the instance to connect to
-If you're unsure, leave blank or try 1.5a</value>
+    <value>Leave blank for Everything 1.5 beta and later. Use 1.5a for the older alpha, or enter your custom instance name.</value>
   </data>
   <data name="launch_e" xml:space="preserve">
     <value>Launch Everything</value>

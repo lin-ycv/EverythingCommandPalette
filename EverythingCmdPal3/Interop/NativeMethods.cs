@@ -1,4 +1,4 @@
-﻿using EverythingCmdPal3.Properties;
+using EverythingCmdPal3.Properties;
 using System;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
@@ -9,7 +9,6 @@ namespace EverythingCmdPal3.Interop
     internal sealed class NativeMethods
     {
         #region FlagsEnum
-        [Flags]
         public enum Property
         {
             NAME = 0,
@@ -432,7 +431,11 @@ namespace EverythingCmdPal3.Interop
             SEPARATOR = 417
         }
         #endregion
+#if ARM64
+        internal const string dllName = "Everything3_ARM64.dll";
+#else
         internal const string dllName = "Everything3_x64.dll";
+#endif
 
         // Connect to Everything
         // instance name can be NULL or an empty string to connect to the main unnamed instance.
@@ -443,6 +446,10 @@ namespace EverythingCmdPal3.Interop
         // disconnects from everything and frees any resources back to the system.
         [DllImport(dllName)]
         internal static extern bool Everything3_DestroyClient(IntPtr client);
+        // The SDK explicitly permits shutdown from another thread. It unblocks
+        // pending IPC; the owner must destroy/reconnect after the call returns.
+        [DllImport(dllName, ExactSpelling = true)]
+        internal static extern bool Everything3_ShutdownClient(IntPtr client);
 
         // general
         [DllImport(dllName, CharSet = CharSet.Unicode)]
@@ -490,6 +497,18 @@ namespace EverythingCmdPal3.Interop
         internal static extern bool Everything3_AddSearchPropertyRequest(IntPtr search_state, Property property);
         [DllImport(dllName)]
         internal static extern bool Everything3_ClearSearchPropertyRequests(IntPtr search_state);
+        [DllImport(dllName, ExactSpelling = true)]
+        internal static extern bool Everything3_SetSearchViewportCount(IntPtr search_state, nuint count);
+        [DllImport(dllName, ExactSpelling = true)]
+        internal static extern bool Everything3_SetSearchViewportOffset(IntPtr search_state, nuint offset);
+        [DllImport(dllName, ExactSpelling = true)]
+        internal static extern nuint Everything3_GetSearchViewportCount(IntPtr search_state);
+        [DllImport(dllName, ExactSpelling = true)]
+        internal static extern nuint Everything3_GetSearchViewportOffset(IntPtr search_state);
+        [DllImport(dllName, ExactSpelling = true)]
+        internal static extern bool Everything3_IsPropertyIndexed(IntPtr client, Property property);
+        [DllImport(dllName, ExactSpelling = true)]
+        internal static extern bool Everything3_IsPropertyFastSort(IntPtr client, Property property);
 
         // execute a search
         [DllImport(dllName)]
@@ -503,44 +522,47 @@ namespace EverythingCmdPal3.Interop
 
         // Result list.
         [DllImport(dllName)]
-        internal static extern uint Everything3_GetResultListCount(IntPtr result_list);
+        internal static extern nuint Everything3_GetResultListCount(IntPtr result_list);
         [DllImport(dllName)]
-        internal static extern bool Everything3_IsFolderResult(IntPtr result_list, uint result_index);
-        [DllImport(dllName, CharSet = CharSet.Unicode)]
-        internal static extern ulong Everything3_GetResultFullPathNameW(IntPtr result_list, uint result_index, [Out] char[] wbuf, uint wbuf_size_in_wchars);
-        [DllImport(dllName, CharSet = CharSet.Unicode)]
-        internal static extern ulong Everything3_GetResultNameW(IntPtr result_list, uint result_index, [Out] char[] wbuf, uint wbuf_size_in_wchars);
-        [DllImport(dllName, CharSet = CharSet.Unicode)]
-        internal static extern ulong Everything3_GetResultPathW(IntPtr result_list, uint result_index, [Out] char[] wbuf, uint wbuf_size_in_wchars);
-        [DllImport(dllName, CharSet = CharSet.Unicode)]
-        internal static extern ulong Everything3_GetResultExtensionW(IntPtr result_list, uint result_index, [Out] char[] wbuf, uint wbuf_size_in_wchars);
+        internal static extern nuint Everything3_GetResultListViewportCount(IntPtr result_list);
         [DllImport(dllName)]
-        internal static extern ulong Everything3_GetResultPropertyUINT64(IntPtr result_list, uint result_index, Property property);
-        internal static string ECP_GetModifiedDateTime(IntPtr result_list, uint result_index)
+        internal static extern bool Everything3_IsFolderResult(IntPtr result_list, nuint result_index);
+        [DllImport(dllName, CharSet = CharSet.Unicode)]
+        internal static extern nuint Everything3_GetResultFullPathNameW(IntPtr result_list, nuint result_index, [Out] char[] wbuf, nuint wbuf_size_in_wchars);
+        [DllImport(dllName, CharSet = CharSet.Unicode)]
+        internal static extern nuint Everything3_GetResultNameW(IntPtr result_list, nuint result_index, [Out] char[] wbuf, nuint wbuf_size_in_wchars);
+        [DllImport(dllName, CharSet = CharSet.Unicode)]
+        internal static extern nuint Everything3_GetResultPathW(IntPtr result_list, nuint result_index, [Out] char[] wbuf, nuint wbuf_size_in_wchars);
+        [DllImport(dllName, CharSet = CharSet.Unicode)]
+        internal static extern nuint Everything3_GetResultExtensionW(IntPtr result_list, nuint result_index, [Out] char[] wbuf, nuint wbuf_size_in_wchars);
+        [DllImport(dllName)]
+        internal static extern ulong Everything3_GetResultPropertyUINT64(IntPtr result_list, nuint result_index, Property property);
+        internal static string ECP_GetModifiedDateTime(IntPtr result_list, nuint result_index)
         {
             ulong ft = Everything3_GetResultPropertyUINT64(result_list, result_index, Property.DATE_MODIFIED);
-            if (ft == ulong.MaxValue) return string.Empty;
+            if (ft > 2650467743999999999UL) return string.Empty;
             DateTime dt = DateTime.FromFileTimeUtc((long)ft).ToLocalTime();
             return dt.ToString("yyyy-MM-dd hh:mm tt", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         [DllImport(dllName)]
-        internal static extern ulong Everything3_GetResultSize(IntPtr result_list, uint result_index);
-        internal static string ECP_GetSize(IntPtr result_list, uint result_index)
+        internal static extern ulong Everything3_GetResultSize(IntPtr result_list, nuint result_index);
+        internal static string ECP_GetSize(IntPtr result_list, nuint result_index)
         {
             ulong b = Everything3_GetResultSize(result_list, result_index);
-            float kb = b / 1024;
-            if (kb == 0)
+            if (b == ulong.MaxValue) return string.Empty;
+            double kb = b / 1024.0;
+            if (b < 1024)
                 return $"{b} Bytes";
-            if (kb < 1000)
+            if (kb < 1024)
                 return $"{kb:F2} KB";
-            float mb = kb / 1024;
-            if (mb < 1000)
+            double mb = kb / 1024;
+            if (mb < 1024)
                 return $"{mb:F2} MB";
-            float gb = mb / 1024;
-            if (gb < 1000)
+            double gb = mb / 1024;
+            if (gb < 1024)
                 return $"{gb:F2} GB";
-            float tb = gb / 1024;
+            double tb = gb / 1024;
             return $"{tb:F2} TB";
         }
     }

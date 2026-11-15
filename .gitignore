@@ -349,3 +349,12 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Local .NET CLI state used for restricted build environments
+/.buildhome/
+
+# User Custom
+/Tests/
+/.buildhome/
+/Verification/
+/docs/
