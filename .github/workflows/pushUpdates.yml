@@ -83,12 +83,15 @@ jobs:
           Install-Module Chocolatey-AU -Force -Scope CurrentUser
           $env:ECP_RELEASE_TAG = $env:RELEASE_TAG
           $result = ./update.ps1
+          $packages = @(Get-ChildItem -Path . -Filter "everythingcmdpal.$($env:EXPECTED_VERSION).nupkg" -File)
+          if ($packages.Count -eq 0) {
+            Write-Host 'Chocolatey-AU produced no new .nupkg (package may already exist on Chocolatey).'
+            exit 0
+          }
+          if ($packages.Count -ne 1) { throw 'Expected exactly one .nupkg.' }
           $version = ([xml](Get-Content ./everythingcmdpal.nuspec -Raw)).package.metadata.version
           if ($version -ne $env:EXPECTED_VERSION) { throw "Unexpected Choco nuspec version $version (expected $env:EXPECTED_VERSION)" }
-          $packages = @(Get-ChildItem -Path . -Filter "everythingcmdpal.$($env:EXPECTED_VERSION).nupkg" -File)
-          if ($env:DRY_RUN -eq 'true') { Write-Host "Dry run: generated/checked ECP $version. No push."; exit 0 }
-          if ($packages.Count -eq 0) { Write-Host 'No new .nupkg (already up-to-date).'; exit 0 }
-          if ($packages.Count -ne 1) { throw 'Expected exactly one .nupkg.' }
+          if ($env:DRY_RUN -eq 'true') { Write-Host "Dry run: generated ECP $version. No push."; exit 0 }
           if (-not $env:CHOCO_API_KEY) { throw 'Missing CHOCOLATEY secret.' }
           choco push $packages[0].FullName --source 'https://push.chocolatey.org/' --key $env:CHOCO_API_KEY
           if ($LASTEXITCODE -ne 0) { throw "Chocolatey push failed: $LASTEXITCODE" }
