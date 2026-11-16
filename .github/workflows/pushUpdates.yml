@@ -37,24 +37,19 @@ jobs:
         env:
           EVENT_TAG: ${{ github.event.release.tag_name }}
           REQUESTED_TAG: ${{ inputs.release_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
           $tag = $env:EVENT_TAG
           if (-not $tag) { $tag = $env:REQUESTED_TAG }
-          if (-not $tag) {
-            $h = @{ 'User-Agent' = 'EverythingCmdPal-updater'; Accept = 'application/vnd.github+json' }
-            $releases = @(Invoke-RestMethod -Uri 'https://api.github.com/repos/lin-ycv/EverythingCommandPalette/releases?per_page=100' -Headers $h)
-            $pattern = '^VictorLin\.EverythingCP_\d+\.\d+\.\d+\.\d+_x64__[^/]+\.msix$'
-            $found = @($releases | Where-Object {
-              -not $_.draft -and -not $_.prerelease -and
-              @($_.assets | Where-Object { $_.name -match $pattern }).Count -gt 0
-            } | Select-Object -First 1)
-            if ($found.Count -eq 0) { throw 'No published ECP x64 release found.' }
-            $tag = $found[0].tag_name
+          if ($tag) {
+            $data = ./.github/scripts/Resolve-ReleaseMsix.ps1 -ReleaseTag $tag | ConvertFrom-Json
+          } else {
+            # The resolver enumerates GitHub releases explicitly and selects the newest ECP release.
+            $data = ./.github/scripts/Resolve-ReleaseMsix.ps1 | ConvertFrom-Json
           }
-          $data = ./.github/scripts/Resolve-ReleaseMsix.ps1 -ReleaseTag $tag | ConvertFrom-Json
           "found=$($data.Found.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
-          "release_tag=$tag" >> $env:GITHUB_OUTPUT
+          "release_tag=$($data.ReleaseTag)" >> $env:GITHUB_OUTPUT
           if ($data.Found) {
             "version=$($data.Version)" >> $env:GITHUB_OUTPUT
             "assets=$($data | ConvertTo-Json -Compress -Depth 5)" >> $env:GITHUB_OUTPUT
@@ -77,13 +72,14 @@ jobs:
           EXPECTED_VERSION: ${{ needs.resolve-release.outputs.version }}
           DRY_RUN: ${{ inputs.dry_run }}
           CHOCO_API_KEY: ${{ secrets.CHOCOLATEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHOCO_REPO_TOKEN: ${{ secrets.CHOCO_REPO_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
           Install-Module Chocolatey-AU -Force -Scope CurrentUser
           $env:ECP_RELEASE_TAG = $env:RELEASE_TAG
           $result = ./update.ps1
-          $packages = @(Get-ChildItem -Path . -Filter "everythingcmdpal.$($env:EXPECTED_VERSION).nupkg" -File)
+          $packages = @(Get-ChildItem -Path . -Filter "everythingcmdpal.*.nupkg" -File)
           if ($packages.Count -eq 0) {
             Write-Host 'Chocolatey-AU produced no new .nupkg (package may already exist on Chocolatey).'
             exit 0
@@ -141,7 +137,7 @@ jobs:
             $yaml = Get-Content $file.FullName -Raw -Encoding utf8
             $yaml = $yaml.Replace('v_VERSION_', $data.ReleaseTag)
             $yaml = $yaml.Replace('_VERSION_', $data.Version)
-            if ($file.FullName -eq $installerFile) {
+            if ($file.Name -eq 'lin-ycv.EverythingCmdPal.installer.yaml') {
               $lines = @()
               foreach ($item in $installers) {
                 $lines += "- Architecture: $($item.Architecture)"
@@ -149,9 +145,13 @@ jobs:
                 $lines += "  InstallerSha256: $($item.Sha256)"
               }
               $replacement = "Installers:" + [Environment]::NewLine + ($lines -join [Environment]::NewLine) + [Environment]::NewLine
-              $yaml = [regex]::Replace($yaml, '(?ms)^Installers:\s*\r?\n.*?(?=^ManifestType:)', $replacement)
+              $updatedYaml = [regex]::Replace($yaml, '(?ms)^Installers:\s*\r?\n.*?(?=^ManifestType:)', $replacement)
+              if ($updatedYaml -eq $yaml) { throw 'Could not replace Installers section in ECP winget template.' }
+              $yaml = $updatedYaml
             }
-            if ($yaml -match '_(VERSION|X64|HASH64|ARM64|HASHarm64)_') { throw "Unresolved token in $($file.Name)" }
+            if ($yaml -match '(?m)^\s*[A-Za-z]\w*:\s*v?_(?:VERSION|X64|HASH64|ARM64|HASHarm64)_\s*$') {
+              throw "Unresolved manifest placeholder in $($file.Name)"
+            }
             Set-Content $file.FullName -Value $yaml -Encoding utf8
           }
           if ($env:DRY_RUN -eq 'true') {
