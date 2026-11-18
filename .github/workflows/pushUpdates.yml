@@ -143,7 +143,9 @@ jobs:
           New-Item -ItemType Directory -Path $out | Out-Null
           Copy-Item -Path (Join-Path $src '*.yaml') -Destination $out
           $installerFile = Join-Path $out 'lin-ycv.EverythingCmdPal.installer.yaml'
-          $installers = @($data.Installers)
+          # Keep ARM64 in the GitHub release/Chocolatey; submit only x64 to winget.
+          $installers = @($data.Installers | Where-Object { $_.Architecture -eq 'x64' })
+          if ($installers.Count -ne 1) { throw 'ECP winget submission requires exactly one x64 installer.' }
           foreach ($file in @(Get-ChildItem $out -Filter '*.yaml')) {
             $yaml = Get-Content $file.FullName -Raw -Encoding utf8
             $yaml = $yaml.Replace('v_VERSION_', $data.ReleaseTag)
@@ -166,7 +168,7 @@ jobs:
             Set-Content $file.FullName -Value $yaml -Encoding utf8
           }
           if ($env:DRY_RUN -eq 'true') {
-            Write-Host "Dry run: ECP $($data.Version), architectures $(@($data.Installers).Architecture -join ', ')"
+            Write-Host "Dry run: ECP $($data.Version), winget architectures $($installers.Architecture -join ', ')"
             Get-Content $installerFile
             exit 0
           }
