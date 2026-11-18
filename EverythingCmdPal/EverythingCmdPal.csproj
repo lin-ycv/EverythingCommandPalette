@@ -10,7 +10,8 @@
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 
-    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <PublishProfile Condition="'$(PublishProfile)' == '' and '$(Platform)' == 'x64'">win-x64.pubxml</PublishProfile>
+    <PublishProfile Condition="'$(PublishProfile)' == '' and '$(Platform)' == 'ARM64'">win-arm64.pubxml</PublishProfile>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
 	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -72,7 +73,6 @@
     </PackageReference>
     <PackageReference Include="Shmuelie.WinRTServer" />
     <PackageReference Include="System.Drawing.Common" />
-    <PackageReference Include="ToolGood.Words.Pinyin" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Interop\NativeMethods.cs">
@@ -103,21 +103,6 @@
     <None Update="Public\.gitkeep">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Win32\Helper.deps.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Win32\Helper.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Win32\Helper.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Win32\Helper.runtimeconfig.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Win32\" />
   </ItemGroup>
 
   <!--
@@ -130,7 +115,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PublishSingleFile>true</PublishSingleFile>
+    <PublishSingleFile>false</PublishSingleFile>
     <IsAotCompatible>true</IsAotCompatible>
 
     <CsWinRTAotOptimizerEnabled>true</CsWinRTAotOptimizerEnabled>
@@ -166,9 +151,8 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'!='Debug'">
-    <!-- In Release builds, trimming is enabled by default.
-         feel free to disable this if needed -->
-    <PublishTrimmed>true</PublishTrimmed>
+    <!-- Framework-dependent publishing does not support trimming. -->
+    <PublishTrimmed>false</PublishTrimmed>
 
     <!-- In release, also ignore the aforementioned ILLink warning -->
     <ILLinkTreatWarningsAsErrors>false</ILLinkTreatWarningsAsErrors>

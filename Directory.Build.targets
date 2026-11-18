@@ -1,0 +1,19 @@
+<Project>
+	<Target Name="ValidateFrameworkDependentDeployment"
+			BeforeTargets="PrepareForBuild;ComputeFilesToPublish"
+			Condition="'$(DesignTimeBuild)' != 'true' and '$(MSBuildProjectName)' == 'EverythingCmdPal'">
+
+		<Error
+		  Condition="'$(SelfContained)' == 'true' or '$(PublishSelfContained)' == 'true' or '$(PublishTrimmed)' == 'true' or '$(PublishAot)' == 'true' or '$(PublishSingleFile)' == 'true'"
+		  Text="EverythingCmdPal requires framework-dependent .NET deployment without trimming, AOT, or single-file publishing." />
+
+		<Error
+		  Condition="'$(UseAppHost)' != 'true'"
+		  Text="UseAppHost must remain true: Command Palette launches the extension through its .exe file." />
+
+		<Error
+		  Condition="!('$(Platform)' == 'x64' and '$(RuntimeIdentifier)' == 'win-x64') and !('$(Platform)' == 'ARM64' and '$(RuntimeIdentifier)' == 'win-arm64')"
+		  Text="Use Platform=x64 with RuntimeIdentifier=win-x64, or Platform=ARM64 with RuntimeIdentifier=win-arm64." />
+
+	</Target>
+</Project>

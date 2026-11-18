@@ -9,7 +9,5 @@
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools.MSIX" Version="1.7.261102100" />
     <PackageVersion Include="Shmuelie.WinRTServer" Version="2.2.1" />
     <PackageVersion Include="System.Drawing.Common" Version="10.0.15" />
-    <!-- The 0.12 SDK uses this at runtime but omits it from its NuGet dependencies. -->
-    <PackageVersion Include="ToolGood.Words.Pinyin" Version="3.1.0.4" />
   </ItemGroup>
 </Project>

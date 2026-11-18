@@ -26,8 +26,46 @@ namespace EverythingCmdPal.Commands
 
         public override CommandResult Invoke()
         {
-            // Use fool-proof win32helper
-            Win32Helper.Execute(_fullPath, "--copy");
+            try
+            {
+                // Resolve the storage item before copying, so the clipboard data survives CmdPal closing.
+                Task.Run(async () =>
+                {
+                    IStorageItem item = _isFolder
+                        ? await StorageFolder.GetFolderFromPathAsync(_fullPath)
+                        : await StorageFile.GetFileFromPathAsync(_fullPath);
+
+                    DataPackage package = new() { RequestedOperation = DataPackageOperation.Copy };
+                    package.SetStorageItems(new IStorageItem[] { item });
+
+                    // The packaged CmdPal SDK cannot set arbitrary clipboard content.
+                    // Use an STA thread for the WinRT clipboard APIs instead.
+                    Exception? clipboardError = null;
+                    var thread = new System.Threading.Thread(() =>
+                    {
+                        try
+                        {
+                            Clipboard.SetContent(package);
+                            Clipboard.Flush();
+                        }
+                        catch (Exception ex)
+                        {
+                            clipboardError = ex;
+                        }
+                    });
+                    thread.SetApartmentState(System.Threading.ApartmentState.STA);
+                    thread.Start();
+                    thread.Join();
+
+                    if (clipboardError is not null)
+                        throw clipboardError;
+                }).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                ExtensionHost.LogMessage($"EPT-CP: {Resources.clipboard_failed}\n{_fullPath}\n{ex}");
+                return CommandResult.KeepOpen();
+            }
 
             //// apparently Clipboard.SetContentWithOptions only works on UI thread?
             //// Clipboardhelper currently only deals with texts

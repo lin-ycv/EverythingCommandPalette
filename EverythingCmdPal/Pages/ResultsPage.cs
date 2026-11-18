@@ -61,6 +61,10 @@ internal sealed partial class ResultsPage : DynamicListPage, IDisposable, IFallb
                 _staged = false;
                 QueueSearch();
             }
+            else if (!_hasQuery && !_disposed && _settings.Current.ShowResultsWhenEmpty)
+            {
+                QueueSearch();
+            }
         }
         // Publish complete arrays; never enumerate a list modified by a worker.
         return [.. Volatile.Read(ref _batch).Items];
@@ -234,19 +238,27 @@ internal sealed partial class ResultsPage : DynamicListPage, IDisposable, IFallb
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
+        bool cleared;
         lock (_stateLock)
         {
             _searchText = newSearch;
             _staged = false;
-            QueueSearch();
+            cleared = QueueSearch();
         }
+        if (cleared) NotifyResultsChanged();
     }
 
-    private void QueueSearch()
+    private bool QueueSearch()
     {
-        if (_disposed) return;
+        if (_disposed) return false;
         _hasQuery = true;
+        if (string.IsNullOrWhiteSpace(_searchText) && !_settings.Current.ShowResultsWhenEmpty)
+        {
+            ClearResults();
+            return true;
+        }
         _worker.Submit(new(_searchText, _filters.GetPrefix(), _settings.Current));
+        return false;
     }
 
     private void OnSettingsChanged(object? sender, EventArgs args)
@@ -275,7 +287,9 @@ internal sealed partial class ResultsPage : DynamicListPage, IDisposable, IFallb
     private void OnFiltersChanged(object? sender, IPropChangedEventArgs args)
     {
         if (args.PropertyName != nameof(Filters.CurrentFilterId)) return;
-        lock (_stateLock) QueueSearch();
+        bool cleared;
+        lock (_stateLock) cleared = QueueSearch();
+        if (cleared) NotifyResultsChanged();
     }
 
     public void Dispose()

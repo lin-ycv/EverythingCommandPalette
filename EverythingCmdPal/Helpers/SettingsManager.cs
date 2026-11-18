@@ -70,6 +70,12 @@ namespace EverythingCmdPal.Helpers
             Resources.show_more_description,
             true);
 
+        private readonly BooleanSetting _showResultsWhenEmpty = new(
+            Namespaced(nameof(ShowResultsWhenEmpty)),
+            Resources.show_empty_results,
+            Resources.show_empty_results_description,
+            false);
+
         private readonly BooleanSetting _enableDelete = new(
             Namespaced(nameof(EnableDelete)),
             Resources.enable_delete,
@@ -114,6 +120,7 @@ namespace EverythingCmdPal.Helpers
         public bool Regex => _regex.Value;
         public bool RunAs => _runas.Value;
         public bool ShowMore => _showMore.Value;
+        public bool ShowResultsWhenEmpty => _showResultsWhenEmpty.Value;
         public bool EnableDelete => _enableDelete.Value;
         public bool CtrlEnterOpenFolder => _ctrlEnterOpenFolder.Value;
         public string Exe => _exe.Value ?? string.Empty;
@@ -155,6 +162,7 @@ namespace EverythingCmdPal.Helpers
             Settings.Add(_regex);
             Settings.Add(_runas);
             Settings.Add(_showMore);
+            Settings.Add(_showResultsWhenEmpty);
             Settings.Add(_enableDelete);
             Settings.Add(_ctrlEnterOpenFolder);
             Settings.Add(_exe);
@@ -222,7 +230,7 @@ namespace EverythingCmdPal.Helpers
             return new SearchSettings(
                 SortOption, Max, Prefix, DetailPane, Match, Regex, RunAs, ShowMore,
                 EnableDelete, CtrlEnterOpenFolder, Exe, EnableSend, Sendto, is1_4,
-                new Dictionary<string, string>(_filters));
+                new Dictionary<string, string>(_filters), ShowResultsWhenEmpty);
         }
 
         private readonly Dictionary<string, string> _filters = [];

@@ -10,7 +10,7 @@ namespace EverythingCmdPal.Commands
     internal sealed class CommandHandler
     {
         // Extensions for adding run as admin context menu item for applications
-        private readonly string[] _appExtensions = [".exe", ".bat", ".appref-ms", ".lnk"];
+        private readonly string[] _appExtensions = [".exe", ".bat", ".appref-ms", ".lnk", ".msi", ".ahk", ".ps1", ".cmd"];
         internal CommandContextItem[] LoadCommands(string fullPath, bool isFolder, ResultsPage page, SearchSettings settings)
         {
             List<CommandContextItem> items = [];
@@ -72,7 +72,6 @@ namespace EverythingCmdPal.Commands
             }
 
             items.AddRange((CommandContextItem[])[
-                // Working using win32Helper
                 new CommandContextItem(new CopyCommand(fullPath, isFolder)) {
                     RequestedShortcut = KeyChordHelpers.FromModifiers(true,false,false,false, (int)VirtualKey.C, 0)
                 },

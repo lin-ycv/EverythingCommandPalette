@@ -1,6 +1,16 @@
 <Project>
   <PropertyGroup>
+    <Platform Condition="('$(Platform)' == '' or '$(Platform)' == 'AnyCPU') and '$(RuntimeIdentifier)' == 'win-arm64'">ARM64</Platform>
+    <Platform Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">x64</Platform>
     <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifier Condition="('$(MSBuildProjectName)' == 'EverythingCmdPal' or '$(MSBuildProjectName)' == 'Helper') and '$(RuntimeIdentifier)' == '' and '$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="('$(MSBuildProjectName)' == 'EverythingCmdPal' or '$(MSBuildProjectName)' == 'Helper') and '$(RuntimeIdentifier)' == '' and '$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <PublishSelfContained>false</PublishSelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishAot>false</PublishAot>
+    <UseAppHost>true</UseAppHost>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>Recommended</AnalysisMode>
     <_SkipUpgradeNetAnalyzersNuGetWarning>true</_SkipUpgradeNetAnalyzersNuGetWarning>

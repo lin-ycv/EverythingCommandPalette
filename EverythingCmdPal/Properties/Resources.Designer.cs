@@ -528,6 +528,24 @@ namespace EverythingCmdPal.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show results for an empty query.
+        /// </summary>
+        internal static string show_empty_results {
+            get {
+                return ResourceManager.GetString("show_empty_results", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Search even before typing anything.
+        /// </summary>
+        internal static string show_empty_results_description {
+            get {
+                return ResourceManager.GetString("show_empty_results_description", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Show more.
         /// </summary>
         internal static string show_more {

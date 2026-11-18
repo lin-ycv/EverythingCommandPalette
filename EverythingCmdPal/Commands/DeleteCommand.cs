@@ -1,9 +1,11 @@
 ﻿using EverythingCmdPal.Helpers;
 using EverythingCmdPal.Properties;
+using Microsoft.VisualBasic.FileIO;
 using Microsoft.CommandPalette.Extensions.Toolkit;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 
 namespace EverythingCmdPal.Commands
 {
@@ -18,8 +20,30 @@ namespace EverythingCmdPal.Commands
         }
         public override CommandResult Invoke()
         {
-            // Use fool-proof win32helper
-            Win32Helper.Execute(_fullPath, "--delete");
+            Exception? failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    if (_isFolder)
+                        FileSystem.DeleteDirectory(_fullPath, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                    else
+                        FileSystem.DeleteFile(_fullPath, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            if (failure is not null)
+            {
+                ExtensionHost.LogMessage($"EPT-CP: Failed to recycle {_fullPath}\n{failure}");
+                return CommandResult.KeepOpen();
+            }
 
             // should use FileSystem.DeleteFile
             // but doesn't work on non-ui thread

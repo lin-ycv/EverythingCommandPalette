@@ -7,7 +7,6 @@
 [![GitHub all releases](https://img.shields.io/github/downloads/lin-ycv/EverythingCommandPalette/total?style=flat-square)](https://github.com/lin-ycv/EverythingCommandPalette/releases/)
 [![GitHub release (latest by date)](https://img.shields.io/github/downloads/lin-ycv/EverythingCommandPalette/latest/total?style=flat-square)](https://github.com/lin-ycv/EverythingCommandPalette/releases/latest)<br>
 [![Chocolatey version](https://img.shields.io/chocolatey/v/everythingcmdpal?style=flat-square)](https://community.chocolatey.org/packages/everythingcmdpal)
-[![Scoop version](https://img.shields.io/scoop/v/everything-cmdpal?bucket=extras&color=orange&style=flat-square)](https://scoop.sh/#/apps?q=everything-cmdpal)
 [![Winget](https://img.shields.io/winget/v/lin-ycv.EverythingCmdPal?style=flat-square)](https://github.com/microsoft/winget-pkgs/tree/master/manifests/l/lin-ycv/EverythingCmdPal)
 
 </div>
@@ -19,11 +18,20 @@ ECP adds the ability to search the computer for files and folders using [Everyth
 Chose the one you prefer:
 1) MS Store
 2) Chocolatey
-3) Scoop
-4) WinGet
-5) App Package (MSIX)
+3) WinGet
+4) App Package (MSIX)
 
 Detailed explanations and instructions are on the [wiki page](https://github.com/lin-ycv/EverythingCommandPalette/wiki)
+
+#### Runtime requirements and builds
+
+The extension uses framework-dependent .NET 10 deployment.
+
+Install the [.NET 10 Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) for your package architecture (x64 or ARM64).
+
+The .NET 10 Desktop Runtime, ASP.NET Core Runtime, and SDK also satisfy this requirement because they include the base .NET 10 Runtime. Installing only .NET 9 or .NET 11 does not satisfy the requirement under the default runtime roll-forward policy.
+
+Installing the MSIX package directly does not automatically install the .NET runtime prerequisite. It must be installed separately, although package managers such as WinGet can handle this dependency.
 
 #### Foreground activation and shortcuts
 For reliable foreground activation, use PowerToys **0.102.2933.0 or newer**. Its CmdPal host renews foreground permission before each extension command ([PowerToys #50651](https://github.com/microsoft/PowerToys/pull/50651)). Updating the extension alone cannot provide this fix on older hosts.

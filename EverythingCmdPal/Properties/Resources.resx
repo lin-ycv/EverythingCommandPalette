@@ -230,6 +230,12 @@ Separate program path and argument with comma (,) where $P$ represents the path 
   <data name="sendto" xml:space="preserve">
     <value>Send to specified</value>
   </data>
+  <data name="show_empty_results" xml:space="preserve">
+    <value>Show results for an empty query</value>
+  </data>
+  <data name="show_empty_results_description" xml:space="preserve">
+    <value>Search even before typing anything. When off, clearing the query also clears the results.</value>
+  </data>
   <data name="show_more" xml:space="preserve">
     <value>Show more</value>
   </data>

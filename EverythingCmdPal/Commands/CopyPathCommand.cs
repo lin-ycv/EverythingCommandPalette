@@ -22,8 +22,15 @@ namespace EverythingCmdPal.Commands
 
         public override CommandResult Invoke()
         {
-            // Use fool-proof win32helper
-            Win32Helper.Execute(_fullPath, "--as-text");
+            try
+            {
+                ClipboardHelper.SetText(_fullPath);
+            }
+            catch (Exception ex)
+            {
+                ExtensionHost.LogMessage($"EPT-CP: {Resources.clipboard_failed}\n{_fullPath}\n{ex}");
+                return CommandResult.KeepOpen();
+            }
 
             //try
             //{
@@ -36,7 +43,11 @@ namespace EverythingCmdPal.Commands
             //    ExtensionHost.ShowStatus(new StatusMessage() { Message = $"{Resources.clipboard_failed}\n{_fullPath}\n{e.Message}", State = MessageState.Error }, StatusContext.Page);
             //}
             Query.IncrementRunCount(_fullPath);
-            return CommandResult.KeepOpen();
+            return CommandResult.ShowToast(new ToastArgs
+            {
+                Message = Resources.copy_path_ok,
+                Result = CommandResult.KeepOpen(),
+            });
         }
     }
 }
