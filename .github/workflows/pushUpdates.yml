@@ -1,50 +1,176 @@
-name: Push updates to package managers
+name: Push ECP updates to package managers
 
 on:
   release:
     types: [published]
-
   workflow_dispatch:
-  
+    inputs:
+      release_tag:
+        description: "Existing GitHub release tag (blank = latest ECP release)"
+        required: false
+        type: string
+      dry_run:
+        description: "Generate and validate without publishing"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
 jobs:
-  build:
-    if: github.event.release.prerelease == false
+  resolve-release:
+    if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
     runs-on: windows-latest
-
+    outputs:
+      found: ${{ steps.resolve.outputs.found }}
+      release_tag: ${{ steps.resolve.outputs.release_tag }}
+      version: ${{ steps.resolve.outputs.version }}
+      assets: ${{ steps.resolve.outputs.assets }}
     steps:
-      
-      - name: Config and Push
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Resolve ECP release
+        id: resolve
+        shell: pwsh
         env:
-          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
-        run: |          
-          # Get Chocolatey manifests
-          git clone --filter=blob:none --no-checkout --depth 1 https://github.com/lin-ycv/chocolatey-pkgs.git
-          cd chocolatey-pkgs
-          git sparse-checkout set --cone
-          git sparse-checkout set .\manifests\everythingcmdpal
-          git checkout main
-
-          # Use Choco-AU to get the data
-          Install-Module Chocolatey-AU -Force
-          cd .\manifests\everythingcmdpal
-          $UpdateOutput = .\update.ps1
-          echo $Latest.Version $Latest.URL64 $Latest.Checksum64 $Latest.ARM64 $Latest.Checksuma64
-
-          # Chocolatey: Check (and Push)
-          $NupkgPath = (($UpdateOutput.Result | Where-Object {$_ -like '*.nupkg''*'}) -split "'")[1]
-          if ($NupkgPath){
-            Write-Output "Newer Version Available: push to Choco"
-            $ApiKey = '${{ secrets.CHOCOLATEY }}'
-            $ChocoServer = 'https://push.chocolatey.org/'
-            choco push $NupkgPath --source $ChocoServer --key $ApiKey
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          REQUESTED_TAG: ${{ inputs.release_tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:EVENT_TAG
+          if (-not $tag) { $tag = $env:REQUESTED_TAG }
+          if ($tag) {
+            $data = ./.github/scripts/Resolve-ReleaseMsix.ps1 -ReleaseTag $tag | ConvertFrom-Json
+          } else {
+            # The resolver enumerates GitHub releases explicitly and selects the newest ECP release.
+            $data = ./.github/scripts/Resolve-ReleaseMsix.ps1 | ConvertFrom-Json
           }
-          cd ..\..\..
+          "found=$($data.Found.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "release_tag=$($data.ReleaseTag)" >> $env:GITHUB_OUTPUT
+          if ($data.Found) {
+            "version=$($data.Version)" >> $env:GITHUB_OUTPUT
+            "assets=$($data | ConvertTo-Json -Compress -Depth 5)" >> $env:GITHUB_OUTPUT
+            Write-Host "ECP $($data.Version): $(@($data.Installers).Architecture -join ', ')"
+          } else { Write-Host "No ECP MSIX in $tag; skipping ECP publishing." }
 
-          # Winget
-          rm -Path .\* -Recurse -Force
-          git clone -b winget https://github.com/lin-ycv/EverythingCommandPalette.git --depth 1
-          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
-          cd .\EverythingCommandPalette
-          rm .git -Recurse -Force -Confirm:$false
-          Get-ChildItem *.* -Recurse | ForEach { (Get-Content $_) | ForEach  {$_ -Replace '_VERSION_', $Latest.Version} | ForEach  {$_ -Replace '_X64_', $Latest.URL64} | ForEach  {$_ -Replace '_HASH64_', $Latest.Checksum64} | ForEach  {$_ -Replace '_ARM64_', $Latest.ARM64} | ForEach  {$_ -Replace '_HASHarm64_', $Latest.Checksuma64} | Set-Content $_ }
-          ..\wingetcreate submit ".\\" -p "New version: EverythingCmdPal version $Latest.Version" .
+  publish-chocolatey:
+    needs: resolve-release
+    if: needs.resolve-release.outputs.found == 'true'
+    runs-on: windows-latest
+    steps:
+      - name: Clone Chocolatey repository
+        shell: pwsh
+        run: git clone --depth 1 https://github.com/lin-ycv/chocolatey-pkgs.git
+      - name: Update and publish ECP package
+        shell: pwsh
+        working-directory: chocolatey-pkgs/manifests/everythingcmdpal
+        env:
+          RELEASE_TAG: ${{ needs.resolve-release.outputs.release_tag }}
+          EXPECTED_VERSION: ${{ needs.resolve-release.outputs.version }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          CHOCO_API_KEY: ${{ secrets.CHOCOLATEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHOCO_REPO_TOKEN: ${{ secrets.CHOCO_REPO_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Install-Module Chocolatey-AU -Force -Scope CurrentUser
+          $env:ECP_RELEASE_TAG = $env:RELEASE_TAG
+          $result = ./update.ps1
+          $packages = @(Get-ChildItem -Path . -Filter "everythingcmdpal.*.nupkg" -File)
+          if ($packages.Count -eq 0) {
+            Write-Host 'Chocolatey-AU produced no new .nupkg (package may already exist on Chocolatey).'
+            exit 0
+          }
+          if ($packages.Count -ne 1) { throw 'Expected exactly one .nupkg.' }
+          $version = ([xml](Get-Content ./everythingcmdpal.nuspec -Raw)).package.metadata.version
+          if ($version -ne $env:EXPECTED_VERSION) { throw "Unexpected Choco nuspec version $version (expected $env:EXPECTED_VERSION)" }
+          if ($env:DRY_RUN -eq 'true') { Write-Host "Dry run: generated ECP $version. No push."; exit 0 }
+          if (-not $env:CHOCO_API_KEY) { throw 'Missing CHOCOLATEY secret.' }
+          choco push $packages[0].FullName --source 'https://push.chocolatey.org/' --key $env:CHOCO_API_KEY
+          if ($LASTEXITCODE -ne 0) { throw "Chocolatey push failed: $LASTEXITCODE" }
+          if (-not $env:CHOCO_REPO_TOKEN) {
+            Write-Warning 'CHOCO_REPO_TOKEN not set: package pushed, but the source repository was not updated.'
+            exit 0
+          }
+          Push-Location ../..
+          try {
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add manifests/everythingcmdpal
+            git diff --cached --quiet
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            git commit -m "Update everythingcmdpal to $env:EXPECTED_VERSION"
+            if ($LASTEXITCODE -ne 0) { throw 'Chocolatey source commit failed.' }
+            $token = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("x-access-token:$env:CHOCO_REPO_TOKEN"))
+            git -c "http.extraheader=AUTHORIZATION: basic $token" push origin HEAD:main
+            if ($LASTEXITCODE -ne 0) { throw 'Chocolatey source push failed.' }
+          } finally { Pop-Location }
+
+  publish-winget:
+    needs: resolve-release
+    if: needs.resolve-release.outputs.found == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: winget
+          path: winget-templates
+      - name: Sync upstream winget-pkgs fork before submission
+        if: inputs.dry_run != true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not $env:GH_TOKEN) { throw 'Missing WINGET_CREATE_GITHUB_TOKEN secret.' }
+          # Never force-reset the fork. Fail if upstream changes cannot be fast-forwarded.
+          gh repo sync lin-ycv/winget-pkgs --branch master
+          if ($LASTEXITCODE -ne 0) { throw "Unable to sync winget fork: $LASTEXITCODE" }
+      - name: Generate and submit ECP manifests
+        shell: pwsh
+        env:
+          RELEASE_JSON: ${{ needs.resolve-release.outputs.assets }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $data = $env:RELEASE_JSON | ConvertFrom-Json
+          $src = Join-Path $PWD 'winget-templates/ECP'
+          $out = Join-Path $PWD 'winget-submit'
+          New-Item -ItemType Directory -Path $out | Out-Null
+          Copy-Item -Path (Join-Path $src '*.yaml') -Destination $out
+          $installerFile = Join-Path $out 'lin-ycv.EverythingCmdPal.installer.yaml'
+          $installers = @($data.Installers)
+          foreach ($file in @(Get-ChildItem $out -Filter '*.yaml')) {
+            $yaml = Get-Content $file.FullName -Raw -Encoding utf8
+            $yaml = $yaml.Replace('v_VERSION_', $data.ReleaseTag)
+            $yaml = $yaml.Replace('_VERSION_', $data.Version)
+            if ($file.Name -eq 'lin-ycv.EverythingCmdPal.installer.yaml') {
+              $lines = @()
+              foreach ($item in $installers) {
+                $lines += "- Architecture: $($item.Architecture)"
+                $lines += "  InstallerUrl: $($item.Url)"
+                $lines += "  InstallerSha256: $($item.Sha256)"
+              }
+              $replacement = "Installers:" + [Environment]::NewLine + ($lines -join [Environment]::NewLine) + [Environment]::NewLine
+              $updatedYaml = [regex]::Replace($yaml, '(?ms)^Installers:\s*\r?\n.*?(?=^ManifestType:)', $replacement)
+              if ($updatedYaml -eq $yaml) { throw 'Could not replace Installers section in ECP winget template.' }
+              $yaml = $updatedYaml
+            }
+            if ($yaml -match '(?m)^\s*[A-Za-z]\w*:\s*v?_(?:VERSION|X64|HASH64|ARM64|HASHarm64)_\s*$') {
+              throw "Unresolved manifest placeholder in $($file.Name)"
+            }
+            Set-Content $file.FullName -Value $yaml -Encoding utf8
+          }
+          if ($env:DRY_RUN -eq 'true') {
+            Write-Host "Dry run: ECP $($data.Version), architectures $(@($data.Installers).Architecture -join ', ')"
+            Get-Content $installerFile
+            exit 0
+          }
+          if (-not $env:WINGET_CREATE_GITHUB_TOKEN) { throw 'Missing WINGET_CREATE_GITHUB_TOKEN secret.' }
+          Invoke-WebRequest 'https://aka.ms/wingetcreate/latest' -OutFile wingetcreate.exe
+          & ./wingetcreate.exe submit $out -p "New EverythingCmdPal version $($data.Version)"
+          if ($LASTEXITCODE -ne 0) { throw "wingetcreate submission failed: $LASTEXITCODE" }
