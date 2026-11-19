@@ -12,8 +12,7 @@ PackageFamilyName: VictorLin.EverythingCP3_yazqh14evg2ve
 Dependencies:
   PackageDependencies:
   - PackageIdentifier: Microsoft.PowerToys
-  - PackageIdentifier: Microsoft.WindowsAppRuntime.1.7
-  - PackageIdentifier: Microsoft.DotNet.DesktopRuntime.10
+  - PackageIdentifier: Microsoft.DotNet.Runtime.10
 Installers:
 - Architecture: x64
   InstallerUrl: _X64_
